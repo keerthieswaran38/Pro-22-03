@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gagner Sports | Premium Sports & Event Management</title>
+    <meta name="description" content="Gagner Sports - Chennai's premier sports and event management company. Marathon management, corporate training, and elite event services since 2020.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;800;900&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="/assets/main-C7V1AJcX.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-B-Bl0Cre.css">
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="cursor"></div>
+    <div class="cursor-follower"></div>
+
+    <!-- Preloader -->
+    <div class="preloader">
+        <div class="preloader-content-new">
+            <div class="logo-sweep-container">
+                <svg viewBox="0 0 100 100" class="logo-path-svg">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2"/>
+                    <path id="sweep-path" d="M50 5 A45 45 0 0 1 95 50" fill="none" stroke="url(#logo-grad)" stroke-width="6" stroke-linecap="round"/>
+                    <defs>
+                        <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#FF5F00" />
+                            <stop offset="100%" style="stop-color:#00C853" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="logo-initials">GR</div>
+            </div>
+            <div class="loader-text">
+                <span class="l-g">GAGNER</span><span class="l-s">SPORTS</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ LEADERBOARD OVERLAY ============ -->
+    <div class="leaderboard-overlay" id="leaderboard-overlay">
+        <div class="lb-close hover-target" id="lb-close">
+            <span class="lb-close-line"></span><span class="lb-close-line"></span>
+        </div>
+        
+        <div class="lb-inner">
+            <div class="lb-header">
+                <h2 class="lb-title">EVENT <span class="green filled">LEADERBOARDS</span></h2>
+                <p class="lb-subtitle">Select an event to view the elite standing performers.</p>
+            </div>
+            
+            <div class="lb-content-area">
+                <!-- VIEW 1: EVENTS GRID -->
+                <div class="lb-events-grid" id="lb-events-grid">
+                    <div class="lb-event-card hover-target" data-event="womens-day">
+                        <div class="lb-card-bg">
+                            <img src="/images/womens_day_run.png" alt="Women's Day Run">
+                        </div>
+                        <div class="lb-card-content">
+                            <div class="lb-tag">MARATHON</div>
+                            <h3>WORLD WOMEN'S DAY RUN</h3>
+                            <div class="lb-action">VIEW STANDINGS →</div>
+                        </div>
+                    </div>
+                    <div class="lb-event-card hover-target" data-event="health-day">
+                        <div class="lb-card-bg">
+                            <img src="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=1400&auto=format&fit=crop" alt="Health Day Run">
+                        </div>
+                        <div class="lb-card-content">
+                            <div class="lb-tag">FITNESS</div>
+                            <h3>WORLD HEALTH DAY RUN</h3>
+                            <div class="lb-action">VIEW STANDINGS →</div>
+                        </div>
+                    </div>
+                    <div class="lb-event-card hover-target" data-event="fathers-day">
+                        <div class="lb-card-bg">
+                            <img src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?q=80&w=1400&auto=format&fit=crop" alt="Father's Day Marathon">
+                        </div>
+                        <div class="lb-card-content">
+                            <div class="lb-tag">FAMILY</div>
+                            <h3>FATHER'S DAY MARATHON</h3>
+                            <div class="lb-action">VIEW STANDINGS →</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 2: STANDINGS LIST -->
+                <div class="lb-standings-view" id="lb-standings-view">
+                    <div class="lb-back-wrapper">
+                        <button class="lb-back-btn hover-target" id="lb-back-btn">← BACK TO EVENTS</button>
+                    </div>
+                    <h3 class="lb-event-name" id="lb-event-name">EVENT NAME</h3>
+                    <div class="lb-winners-list" id="lb-winners-list">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="main-container" id="smooth-wrapper">
+        <div id="smooth-content">
+            
+            <nav class="nav-minimal" id="main-nav">
+                <div class="nav-logo">G/S</div>
+                <div class="nav-links">
+                    <a href="#about" class="hover-target">ABOUT</a>
+                    <a href="#events" class="hover-target">EVENTS</a>
+                    <a href="#leaderboard" class="hover-target" id="nav-leaderboard">LEADERBOARD</a>
+                    <a href="#services" class="hover-target">SERVICES</a>
+                    <a href="#contact" class="hover-target">CONTACT</a>
+                </div>
+                <a href="#contact" class="btn-neon hover-target">GET IN TOUCH</a>
+            </nav>
+
+            <!-- ============ HERO ============ -->
+            <section class="hero-brutal">
+                <div class="hero-content">
+                    <div class="hero-text-wrapper">
+                        <h1 class="hero-title reveal-text">WE ENGINEER</h1>
+                    </div>
+                    <div class="hero-text-wrapper">
+                        <h1 class="hero-title reveal-text indent"><span class="green">ATHLETIC</span></h1>
+                    </div>
+                    <div class="hero-text-wrapper">
+                        <h1 class="hero-title reveal-text">EXCELLENCE.</h1>
+                    </div>
+                    <div class="hero-footer reveal-text delay">
+                        <p>05 YEARS OF ELITE MARATHON MANAGEMENT</p>
+                        <div class="scroll-indicator">
+                            <div class="line"></div>
+                            <span>SCROLL</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <img src="/images/hero_visual.png" alt="Running Athletes">
+                </div>
+            </section>
+
+            <!-- ============ ABOUT ============ -->
+            <section id="about" class="about-massive">
+                <h2 class="massive-text" data-speed="0.8">UNCOMPROMISING</h2>
+                <h2 class="massive-text outline" data-speed="1.2">PRECISION.</h2>
+                <div class="about-desc">
+                    <p>GAGNER SPORTS is aimed at inculcating the value of sport in kids and adults. We offer the Best-in-Class Sports program for kids and adults. Every child can be successful at one sport or another. We help you find the hidden skill and employ techniques to develop fine and gross motor skills.</p>
+                </div>
+            </section>
+
+            <!-- ============ STATS ============ -->
+            <section class="stats-section" id="stats">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" data-target="5">0</div>
+                        <div class="stat-plus">+</div>
+                        <div class="stat-label">YEARS<br>FOUNDED</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-target="50">0</div>
+                        <div class="stat-plus">+</div>
+                        <div class="stat-label">EVENTS<br>ORGANIZED</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-target="10">0</div>
+                        <div class="stat-plus">K+</div>
+                        <div class="stat-label">HAPPY<br>PARTICIPANTS</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-target="100">0</div>
+                        <div class="stat-plus">+</div>
+                        <div class="stat-label">CORPORATE<br>PARTNERS</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ SERVICES — HORIZONTAL SIDE-SCROLL ============ -->
+            <section id="services" class="services-horizontal-unique">
+                <div class="services-pin-content">
+                    <div class="section-heading-wrap" style="padding: 0 4rem; margin-bottom: 2rem;">
+                        <h2 class="heading-unique">
+                            <span class="outline">OUR</span> <span class="filled">SERVICES</span>
+                        </h2>
+                    </div>
+
+                    <div class="services-track-new">
+                        <!-- Cricket Service -->
+                        <div class="service-slide">
+                            <div class="ss-img">
+                                <img src="https://images.unsplash.com/photo-1624526267942-ab0ff8a3e972?q=80&w=1400&auto=format&fit=crop" alt="Cricket Action">
+                                <div class="ss-overlay"></div>
+                            </div>
+                            <div class="ss-info">
+                                <span class="sc-num">01</span>
+                                <h3>CRICKET PROJECTS</h3>
+                                <p>IPL-style league management and grassroots coaching clinics.</p>
+                                <a href="#contact" class="btn-neon small">EXPLORE</a>
+                            </div>
+                        </div>
+
+                        <!-- Football Service -->
+                        <div class="service-slide">
+                            <div class="ss-img">
+                                <img src="https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=1400&auto=format&fit=crop" alt="Football High Impact">
+                                <div class="ss-overlay"></div>
+                            </div>
+                            <div class="ss-info">
+                                <span class="sc-num">02</span>
+                                <h3>FOOTBALL ACADEMY</h3>
+                                <p>Elite academy training and professional league execution for clubs.</p>
+                                <a href="#contact" class="btn-neon small">JOIN ACADEMY</a>
+                            </div>
+                        </div>
+
+                        <!-- Athletic Service -->
+                        <div class="service-slide">
+                            <div class="ss-img">
+                                <img src="/images/athletics_sprint_action.png" alt="Athletics Sprint Action">
+                                <div class="ss-overlay"></div>
+                            </div>
+                            <div class="ss-info">
+                                <span class="sc-num">03</span>
+                                <h3>ATHLETICS TRAINING</h3>
+                                <p>Comprehensive track and field performance programs for athletes.</p>
+                                <a href="#contact" class="btn-neon small">TRAIN NOW</a>
+                            </div>
+                        </div>
+
+                        <!-- Marathon Service -->
+                        <div class="service-slide">
+                            <div class="ss-img">
+                                <img src="https://images.unsplash.com/photo-1471295253337-3ceaaedca402?q=80&w=1400&auto=format&fit=crop" alt="Sports Management Professional">
+                                <div class="ss-overlay"></div>
+                            </div>
+                            <div class="ss-info">
+                                <span class="sc-num">04</span>
+                                <h3>SPORTS MANAGEMENT</h3>
+                                <p>End-to-end event planning and execution for major sporting series.</p>
+                                <a href="#contact" class="btn-neon small">CONSULT</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="events" class="events-vertical-unique">
+                <div class="events-bg-decoration">
+                    <div class="glow-orb"></div>
+                </div>
+                <div class="section-heading-wrap" style="padding: 0 4rem;">
+                    <div class="heading-reveal">
+                        <h2 class="heading-unique">
+                            <span class="filled">UPCOMING</span> <span class="outline">SERIES</span>
+                        </h2>
+                    </div>
+                </div>
+
+                <div class="events-stack">
+                    <!-- Event 1 -->
+                    <div class="event-stack-item hover-target">
+                        <div class="esi-img">
+                            <img src="/images/womens_day_run.png" alt="World Women's Day Run">
+                        </div>
+                        <div class="esi-content">
+                            <div class="esi-meta">
+                                <span class="ec-tag">MARATHON</span>
+                                <span class="ec-year">2026</span>
+                            </div>
+                            <h3>WORLD WOMEN'S DAY RUN</h3>
+                            <p>Celebrating strength and endurance. Join 5000+ women in this annual tribute to empowerment.</p>
+                            <div class="esi-bottom">
+                                <span class="ec-date">MARCH 08</span>
+                                <a href="event-details.html?id=womens-day-run" class="btn-neon small">EXPLORE →</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event 2 -->
+                    <div class="event-stack-item hover-target">
+                        <div class="esi-img">
+                            <img src="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=1400&auto=format&fit=crop" alt="World Health Day Run">
+                        </div>
+                        <div class="esi-content">
+                            <div class="esi-meta">
+                                <span class="ec-tag">FITNESS</span>
+                                <span class="ec-year">2026</span>
+                            </div>
+                            <h3>WORLD HEALTH DAY RUN</h3>
+                            <p>A multi-city run focused on preventive health awareness and community wellness.</p>
+                            <div class="esi-bottom">
+                                <span class="ec-date">APRIL 07</span>
+                                <a href="event-details.html?id=health-day-run" class="btn-neon small">EXPLORE →</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event 3 -->
+                    <div class="event-stack-item hover-target">
+                        <div class="esi-img">
+                            <img src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?q=80&w=1400&auto=format&fit=crop" alt="Father's Day Marathon">
+                        </div>
+                        <div class="esi-content">
+                            <div class="esi-meta">
+                                <span class="ec-tag">FAMILY</span>
+                                <span class="ec-year">2026</span>
+                            </div>
+                            <h3>FATHER'S DAY MARATHON</h3>
+                            <p>Bond through sweat. A unique family-centric marathon event for all age groups.</p>
+                            <div class="esi-bottom">
+                                <span class="ec-date">JUNE 21</span>
+                                <a href="event-details.html?id=fathers-day-marathon" class="btn-neon small">EXPLORE →</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event 4 -->
+                    <div class="event-stack-item hover-target">
+                        <div class="esi-img">
+                            <img src="/images/chennai_juniorthon.png" alt="Juniorthon">
+                        </div>
+                        <div class="esi-content">
+                            <div class="esi-meta">
+                                <span class="ec-tag">KIDS</span>
+                                <span class="ec-year">2026</span>
+                            </div>
+                            <h3>NAMMA CHENNAI JUNIORTHON</h3>
+                            <p>India's largest junior run. Teaching children the importance of an active lifestyle.</p>
+                            <div class="esi-bottom">
+                                <span class="ec-date">COMING SOON</span>
+                                <a href="event-details.html?id=chennai-juniorthon" class="btn-neon small">EXPLORE →</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ CONTACT SECTION ============ -->
+            <section id="contact" class="contact-section">
+                <div class="contact-wrapper">
+                    <div class="contact-header">
+                        <h2>GET IN <span class="green">TOUCH</span></h2>
+                        <p>Have a question? Want to collaborate? Reach out to us.</p>
+                    </div>
+                        <div class="contact-actions" style="margin-top: 2rem;">
+                            <a href="mailto:balaji@gagnersports.com" class="btn-submit hover-target" style="display:inline-flex;">
+                                <span>EMAIL US NOW</span>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:8px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            </a>
+                        </div>
+                </div>
+            </section>
+
+            <!-- ============ FOOTER ============ -->
+            <footer class="footer-full">
+                <div class="footer-top">
+                    <div class="footer-col footer-about">
+                        <div class="footer-brand">GAGNER<span class="green">SPORTS</span></div>
+                        <p>GAGNER BUSINESS SOLUTION is aimed at inculcating the value of sport in kids and adults. We offer the Best-in-Class Sports program for kids and adults.</p>
+                        <div class="social-links">
+                            <a href="https://www.instagram.com/gagnersports?igsh=cmMxcWg5djZmNzNq" target="_blank" class="social-icon hover-target" aria-label="Instagram">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5"/></svg>
+                            </a>
+                            <a href="https://www.facebook.com/gagnersportsandevents" target="_blank" class="social-icon hover-target" aria-label="Facebook">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+                            </a>
+                            <a href="https://wa.me/+919840547782" target="_blank" class="social-icon hover-target" aria-label="WhatsApp">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="footer-col">
+                        <h4>QUICK LINKS</h4>
+                        <ul>
+                            <li><a href="#" class="hover-target">Home</a></li>
+                            <li><a href="#about" class="hover-target">About Us</a></li>
+                            <li><a href="#services" class="hover-target">Services</a></li>
+                            <li><a href="#events" class="hover-target">Events</a></li>
+                            <li><a href="#contact" class="hover-target">Contact Us</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h4>POLICIES</h4>
+                        <ul>
+                            <li><a href="https://gagnersports.com/privacy-policy/" target="_blank" class="hover-target">Privacy Policy</a></li>
+                            <li><a href="https://gagnersports.com/terms-conditions/" target="_blank" class="hover-target">Terms & Conditions</a></li>
+                            <li><a href="https://gagnersports.com/refund-cancellation-policy/" target="_blank" class="hover-target">Refund & Cancellation</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-col footer-contact-info">
+                        <h4>CONTACT US</h4>
+                        <div class="contact-detail">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span>Plot No: 17/18 S.No.485 Jayapriya Nagar, Kolapakkam, Chennai-600128</span>
+                        </div>
+                        <div class="contact-detail">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+                            <span>+91 98405 47782<br>+91 96001 93310</span>
+                        </div>
+                        <div class="contact-detail">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <span>balaji@gagnersports.com</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-bottom-bar">
+                    <p>© 2022 - 2026 All Rights Reserved <strong>GAGNER SPORTS</strong> & ENTERTAINMENT PVT LTD</p>
+                </div>
+            </footer>
+
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+</body>
+</html>
