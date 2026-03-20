@@ -28,7 +28,10 @@ export default defineConfig({
     plugins: [react(), adminRewrite()],
     server: {
         port: 3004,
-        strictPort: true
+        strictPort: true,
+        proxy: {
+            '/api': 'http://localhost:5000'
+        }
     },
     build: {
         rollupOptions: {

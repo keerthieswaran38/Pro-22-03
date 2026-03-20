@@ -22,7 +22,10 @@ export default function ParticipantsPage() {
   const [paymentFilter, setPaymentFilter] = useState('');
 
   useEffect(() => {
-    setTimeout(() => { setParticipants(getParticipants()); setLoading(false); }, 200);
+    getParticipants().then(data => {
+      setParticipants(data);
+      setLoading(false);
+    });
   }, []);
 
   const cities = useMemo(() => [...new Set(participants.map((p: Participant) => p.city))].sort(), [participants]);
@@ -62,7 +65,7 @@ export default function ParticipantsPage() {
       logAction('BULK_DELETE', 'Participants', `${count} removed`);
       message.success(`Deleted ${count} participants`);
     } catch {
-      setParticipants(getParticipants());
+      getParticipants().then(data => setParticipants(data));
       message.error('Delete failed — rolled back');
     }
   };
@@ -77,7 +80,7 @@ export default function ParticipantsPage() {
       logAction('PARTICIPANTS_BULK_PAID', 'Participants', `${count} updated`);
       message.success(`Marked ${count} participants as PAID`);
     } catch {
-      setParticipants(getParticipants());
+      getParticipants().then(data => setParticipants(data));
       message.error('Update failed');
     }
   };

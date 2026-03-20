@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet';
 import { Input, Button, message, Space, Spin, Tooltip } from 'antd';
 import { SearchOutlined, EnvironmentOutlined, CopyOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { encode } from 'open-location-code';
+import { OpenLocationCode } from 'open-location-code';
 
 // CDN Assets for Zero-Latency Loading
 const LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
@@ -55,7 +55,7 @@ const UnbreakableMap: React.FC<UnbreakableMapProps> = ({ coords, onChange, pal, 
   const [copied, setCopied] = useState(false);
   const markerRef = useRef<L.Marker>(null);
 
-  const plusCode = coords ? encode(coords.lat, coords.lng) : null;
+  const plusCode = coords ? new OpenLocationCode().encode(coords.lat, coords.lng) : null;
 
   const handleCopy = () => {
     if (plusCode) {

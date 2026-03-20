@@ -93,9 +93,16 @@ export default function EventsPage() {
     }
   });
 
+  const { data: allCoupons = [] } = useQuery({
+    queryKey: ['coupons'],
+    queryFn: async () => {
+      return getCoupons();
+    }
+  });
+
   const mutation = useMutation({
     mutationFn: async (newEvents: Record<string, GagnerEvent>) => {
-      saveEvents(newEvents);
+      await saveEvents(newEvents);
       return newEvents;
     },
     onMutate: async (newEvents) => {
@@ -701,8 +708,7 @@ export default function EventsPage() {
         centered
       >
         {selectedEvent && (() => {
-          const allCoupons = getCoupons();
-          const applicableCoupons = allCoupons.filter(c => c.active && (c.eventId === selectedEvent.slug || c.eventId === 'ALL'));
+          const applicableCoupons = allCoupons.filter((c: Coupon) => c.active && (c.eventId === selectedEvent.slug || c.eventId === 'ALL'));
           
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>

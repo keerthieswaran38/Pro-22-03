@@ -1,0 +1,124 @@
+{
+  "events": {
+    "chennai-juniorthon-2026": {
+      "slug": "chennai-juniorthon-2026",
+      "title": "Chennai Juniorthon 2026",
+      "tag": "KIDS",
+      "date": "2026-06-15",
+      "time": "06:00 AM",
+      "venue": "Island Grounds, Chennai",
+      "bgImg": "/src/assets/images/chennai_juniorthon.png",
+      "desc": "India’s largest junior run.",
+      "registrationOpen": true,
+      "status": "Open",
+      "deliverables": [
+        "Finisher Medal",
+        "Breakfast"
+      ],
+      "categories": [
+        {
+          "name": "Kid (1-4km)",
+          "price": "650"
+        }
+      ]
+    },
+    "womens-day-run-2026": {
+      "slug": "womens-day-run-2026",
+      "title": "Women's Day Run 2026",
+      "tag": "FITNESS",
+      "date": "2026-03-08",
+      "time": "05:30 AM",
+      "venue": "Marina Beach, Chennai",
+      "bgImg": "/src/assets/images/womens_day_run.png",
+      "desc": "Fitness celebration.",
+      "registrationOpen": true,
+      "status": "Open",
+      "categories": [
+        {
+          "name": "5K Run",
+          "price": "499"
+        }
+      ]
+    },
+    "health-day-run-2026": {
+      "slug": "health-day-run-2026",
+      "title": "Health Day Run 2026",
+      "tag": "FAMILY",
+      "date": "2026-04-07",
+      "time": "05:45 AM",
+      "venue": "Besant Nagar, Chennai",
+      "bgImg": "/src/assets/images/health_day_run.png",
+      "desc": "Community run.",
+      "registrationOpen": true,
+      "status": "Open"
+    },
+    "fathers-day-marathon-2026": {
+      "slug": "fathers-day-marathon-2026",
+      "title": "Father's Day Marathon 2026",
+      "tag": "CORPORATE",
+      "date": "2026-06-21",
+      "time": "06:15 AM",
+      "venue": "VGP Universal Kingdom",
+      "bgImg": "/src/assets/images/fathers_day_marathon.png",
+      "desc": "Bonding marathon.",
+      "registrationOpen": true,
+      "status": "Open"
+    }
+  },
+  "participants": [
+    {
+      "id": "P001",
+      "name": "Rahul Subramanian",
+      "email": "rahul.s@gmail.com",
+      "phone": "9840512345",
+      "city": "Chennai",
+      "gender": "Male",
+      "ageGroup": "18-35",
+      "eventSlug": "chennai-juniorthon-2026",
+      "eventName": "Chennai Juniorthon 2026",
+      "category": "Kid (1-4km)",
+      "paymentStatus": "Paid",
+      "registeredAt": "2026-03-20T08:47:33.329Z"
+    },
+    {
+      "id": "P002",
+      "name": "Ananya Iyer",
+      "email": "ananya.iyer@outlook.com",
+      "phone": "9600154321",
+      "city": "Chennai",
+      "gender": "Female",
+      "ageGroup": "18-35",
+      "eventSlug": "womens-day-run-2026",
+      "eventName": "Women's Day Run 2026",
+      "category": "5K Run",
+      "paymentStatus": "Paid",
+      "registeredAt": "2026-03-20T08:47:33.330Z"
+    }
+  ],
+  "coupons": [
+    {
+      "id": "C01",
+      "code": "GAGNER10",
+      "discountType": "percent",
+      "discountPercent": 10,
+      "maxUses": 100,
+      "usedCount": 5,
+      "active": true,
+      "expiryDate": "2026-12-31",
+      "createdAt": "2026-03-20T08:47:33.330Z"
+    },
+    {
+      "id": "C02",
+      "code": "PROMO20",
+      "discountType": "percent",
+      "discountPercent": 20,
+      "maxUses": 50,
+      "usedCount": 10,
+      "active": true,
+      "expiryDate": "2026-11-30",
+      "createdAt": "2026-03-20T08:47:33.330Z"
+    }
+  ],
+  "leaderboard": {},
+  "audit": []
+}

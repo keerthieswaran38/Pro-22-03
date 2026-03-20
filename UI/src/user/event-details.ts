@@ -1,4 +1,4 @@
-import { getEvents, getParticipants, saveParticipants, getCoupons, saveCoupons, Participant } from '../shared/utils/storage';
+import { getEvents, getParticipants, saveParticipant, getCoupons, saveCoupons, Participant } from '../shared/utils/storage';
 import { logAction } from '../shared/utils/auditLog';
 
 declare const gsap: any;
@@ -6,11 +6,12 @@ declare const gsap: any;
 // Helper for UI
 const $ = (id: string) => document.getElementById(id);
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
     const eventId = params.get('id') || 'womens-day-run';
     
-    const events = getEvents();
+    // 🔥 ASYNC FETCH FROM MONGODB
+    const events = await getEvents();
     const eventData = events[eventId];
     
     if (!eventData) return;
@@ -37,14 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Form Handle
     const form = $('ed-registration-form') as HTMLFormElement;
     if (form) {
-        form.addEventListener('submit', (e) => {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(form);
             const couponCode = (formData.get('coupon') as string)?.toUpperCase();
             
             // Coupon Validation
             if (couponCode) {
-                const coupons = getCoupons();
+                const coupons = await getCoupons();
                 const coupon = coupons.find((c: any) => c.code === couponCode);
                 if (!coupon || !coupon.active) {
                     alert('Invalid or Inactive Coupon!');
@@ -54,14 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Coupon usage limit reached!');
                     return;
                 }
-                // Apply coupon (internal mock logic)
+                // Update coupon count in MongoDB
                 coupon.usedCount += 1;
-                saveCoupons(coupons);
+                await saveCoupons(coupons);
                 logAction('COUPON_USE', 'Public site', `Coupon ${couponCode} used for ${eventData.title}`);
             }
 
-            // Save Participant
-            const participants = getParticipants();
+            // Save Participant to MongoDB
             const newPart: Participant = {
                 id: 'p' + Date.now(),
                 name: formData.get('name') as string,
@@ -77,8 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 registeredAt: new Date().toISOString()
             };
             
-            participants.push(newPart);
-            saveParticipants(participants);
+            await saveParticipant(newPart);
             
             logAction('REGISTRATION', 'Public Site', `New registration for ${eventData.title}: ${newPart.name}`);
             

@@ -430,18 +430,6 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-            <div style={{ marginTop: 24, padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: `1px solid ${p.border}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '0.65rem', color: p.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>Auto-Sync Active</div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: p.textDim }}>Real-time polling enabled (5s)</div>
-                </div>
-                <Button 
-                   icon={<CheckCircleOutlined />} disabled
-                   style={{ height: 40, background: 'rgba(255,255,255,0.02)', borderColor: p.border, color: COLOR_SUCCESS, borderRadius: 8, fontWeight: 600 }}
-                >SYNCED</Button>
-              </div>
-            </div>
           </Card>
         </Col>
       </Row>

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, Select, Form, Input, Button, Typography, Space, message, Empty, Row, Col, Skeleton } from 'antd';
 import { TrophyOutlined, SaveOutlined, CrownOutlined } from '@ant-design/icons';
-import { getEvents, getLeaderboard, saveLeaderboard, LeaderboardEntry } from '../../shared/utils/storage';
+import { useEvents, useLeaderboard } from '../../shared/hooks/useSync';
+import { saveLeaderboard, LeaderboardEntry } from '../../shared/utils/storage';
 import { logAction } from '../../shared/utils/auditLog';
 import { leaderboardEntrySchema, zodToFieldErrors } from '../../shared/utils/schemas';
 import { COLOR_PRIMARY, COLOR_ACCENT, getPalette } from '../../shared/theme';
@@ -12,31 +13,23 @@ const { Title, Text } = Typography;
 export default function LeaderboardPage() {
   const { mode } = useThemeMode();
   const pal = getPalette(mode);
-  const [events, setEvents] = useState<Record<string, any>>({});
-  const [leaderboard, setLeaderboard] = useState<Record<string, LeaderboardEntry[]>>({});
+  const { data: events = {}, isLoading: evLoading } = useEvents();
+  const { data: leaderboard = {}, isLoading: lbLoading } = useLeaderboard();
   const [selectedEvent, setSelectedEvent] = useState('');
   const [form] = Form.useForm();
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setEvents(getEvents());
-      setLeaderboard(getLeaderboard());
-      setLoading(false);
-    }, 200);
-  }, []);
 
   const eventOptions = Object.entries(events)
     .filter(([, ev]: [string, any]) => !ev.isDraft)
     .map(([slug, ev]) => ({ value: slug, label: (ev as any).title }));
 
+  const loading = evLoading || lbLoading;
+
   const handleEventSelect = (slug: string) => {
     setSelectedEvent(slug);
     setFormErrors({});
     const winners = leaderboard[slug] || [];
-    // Guard against undefined — bulletproof access
     const w = (i: number) => winners[i] || { name: '', time: '' };
     form.setFieldsValue({
       first_name: w(0).name, first_time: w(0).time,
@@ -65,23 +58,16 @@ export default function LeaderboardPage() {
       { name: val.third_name, time: cleanTime(val.third_time) },
     ];
 
-    // Optimistic UI update
-    setLeaderboard(prev => ({ ...prev, [selectedEvent]: newWinners }));
-
     try {
-      const lb = getLeaderboard();
-      lb[selectedEvent] = newWinners;
-      saveLeaderboard(lb);
+      saveLeaderboard(selectedEvent, newWinners);
       logAction('LEADERBOARD_UPDATED', events[selectedEvent]?.title || selectedEvent, `1st: ${val.first_name}, 2nd: ${val.second_name}, 3rd: ${val.third_name}`);
       message.success('Leaderboard saved!');
     } catch {
-      setLeaderboard(getLeaderboard());
-      message.error('Save failed — rolled back');
+      message.error('Save failed');
     }
     setSaving(false);
   };
 
-  // Safe access for podium - zero undefined errors guaranteed
   const currentWinners = selectedEvent ? (leaderboard[selectedEvent] || []) : [];
   const w = (i: number) => currentWinners[i] || { name: '', time: '' };
   const hasWinners = w(0).name.length > 0;

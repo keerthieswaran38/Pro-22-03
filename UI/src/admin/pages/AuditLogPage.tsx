@@ -33,13 +33,17 @@ export default function AuditLogPage() {
     const channel = new BroadcastChannel('gagner_audit_sync');
     channel.onmessage = (msg) => {
       if (msg.data === 'LOG_UPDATED') {
-        const fresh = getAuditLog();
-        setLog(fresh);
+        getAuditLog().then(fresh => setLog(fresh));
         message.info('Real-time audit update received', 1);
       }
     };
 
-    setTimeout(() => { setLog(getAuditLog()); setLoading(false); }, 200); 
+    setTimeout(() => { 
+      getAuditLog().then(fresh => {
+        setLog(fresh);
+        setLoading(false);
+      });
+    }, 200); 
 
     return () => channel.close();
   }, []);
