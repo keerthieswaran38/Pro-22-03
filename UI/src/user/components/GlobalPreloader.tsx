@@ -1,121 +1,77 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
+// @ts-ignore
+import logo from '../../assets/images/logo.png';
 
 declare const gsap: any;
 
 export default function GlobalPreloader() {
-    const preloaderRef = useRef<HTMLDivElement>(null);
-    const archRef = useRef<SVGPathElement>(null);
-
-    useLayoutEffect(() => {
-        if (!preloaderRef.current || !archRef.current) return;
-
+    useEffect(() => {
         const tl = gsap.timeline();
 
-        // 1. FAST REV-UP ACCELERATION
-        tl.to(archRef.current, {
+        // 1. Path Sweep (Orange to Green)
+        tl.to('#sweep-path', {
             strokeDashoffset: 0,
-            duration: 1.8,
-            ease: "expo.in"
-        })
-        // 2. SMOOTH EXIT (ZOOM + FADE)
-        .to(preloaderRef.current, {
-            scale: 1.2,
-            opacity: 0,
-            duration: 0.6,
+            duration: 1.5,
             ease: "power2.inOut"
         })
-        .set(preloaderRef.current, { display: 'none' });
+        // 2. Logo Reveal (Original Colorful Logo)
+        .to('.preloader-logo', {
+            scale: 1,
+            opacity: 1,
+            duration: 0.8,
+            ease: "back.out(2)"
+        }, "-=0.5")
+        // 3. Text Reveal
+        .to('.loader-text span', {
+            y: 0,
+            stagger: 0.1,
+            duration: 0.8,
+            ease: "power3.out"
+        }, "-=0.3");
 
-        return () => { tl.kill(); };
     }, []);
 
     return (
-        <div className="preloader" ref={preloaderRef}>
-            <div className="arch-preloader-container">
-                {/* SVG SPEEDOMETER ARCH ONLY */}
-                <svg className="speedometer-arch-svg" viewBox="0 0 200 200">
-                    <path 
-                        className="arch-track"
-                        d="M 43.5,156.5 A 80,80 0 1,1 156.5,156.5"
-                        fill="none" 
-                        stroke="rgba(255, 255, 255, 0.05)" 
-                        strokeWidth="4" 
-                        strokeLinecap="round"
-                    />
-                    <path 
-                        ref={archRef}
-                        className="arch-progress"
-                        d="M 43.5,156.5 A 80,80 0 1,1 156.5,156.5"
-                        fill="none" 
-                        stroke="url(#arch-gradient)" 
-                        strokeWidth="6" 
-                        strokeLinecap="round"
-                        strokeDasharray="377"
-                        strokeDashoffset="377"
-                    />
-                    <defs>
-                        <linearGradient id="arch-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#FF5F00" />
-                            <stop offset="100%" stopColor="#00C853" />
-                        </linearGradient>
-                    </defs>
-                </svg>
-
-                {/* CENTERED LOGO (SYMBOL ONLY) */}
-                <div className="logo-symbol-mask">
+        <div className="preloader">
+            <div className="preloader-content-new">
+                <div className="logo-sweep-container">
+                    <svg viewBox="0 0 100 100" className="logo-path-svg">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="2"/>
+                        <path 
+                          id="sweep-path" 
+                          d="M50 5 A45 45 0 0 1 95 50" 
+                          fill="none" 
+                          stroke="url(#logo-grad)" 
+                          strokeWidth="6" 
+                          strokeLinecap="round" 
+                          style={{ strokeDasharray: 283, strokeDashoffset: 283 }}
+                        />
+                        <defs>
+                            <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style={{ stopColor: "#FF5F00" }} />
+                                <stop offset="100%" style={{ stopColor: "#00C853" }} />
+                            </linearGradient>
+                        </defs>
+                    </svg>
                     <img 
-                        src="/src/assets/images/logo.png" 
-                        alt="Gagner Symbol" 
-                        className="logo-img-crop" 
+                      src={logo} 
+                      className="preloader-logo" 
+                      alt="Gagner Sports" 
+                      style={{ 
+                        position: 'absolute', 
+                        width: '60%', 
+                        height: '60%', 
+                        objectFit: 'contain', 
+                        opacity: 0, 
+                        transform: 'scale(0.5)' 
+                      }} 
                     />
                 </div>
+                <div className="loader-text">
+                    <span className="l-g">GAGNER</span>
+                    <span className="l-s">SPORTS</span>
+                </div>
             </div>
-
-            <style>{`
-                .preloader {
-                    position: fixed;
-                    top: 0; left: 0; width: 100%; height: 100%;
-                    background: #030712;
-                    z-index: 10000;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    overflow: hidden;
-                }
-                .arch-preloader-container {
-                    position: relative;
-                    width: min(320px, 80vw);
-                    height: min(320px, 80vw);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .speedometer-arch-svg {
-                    position: absolute;
-                    width: 100%;
-                    height: 100%;
-                    top: 0; left: 0;
-                }
-                .arch-progress {
-                    filter: drop-shadow(0 0 15px rgba(0, 200, 83, 0.3));
-                }
-                .logo-symbol-mask {
-                    width: 45%;
-                    height: 45%;
-                    overflow: hidden;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    position: relative;
-                }
-                .logo-img-crop {
-                    height: 110%;
-                    width: auto;
-                    object-fit: contain;
-                    object-position: top; /* Hide 'GAGNER' text usually at bottom */
-                    transform: translateY(-5%);
-                }
-            `}</style>
         </div>
     );
 }

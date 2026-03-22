@@ -1,71 +1,148 @@
-import React from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { GagnerEvent, Coupon } from '../../shared/utils/storage';
+import React, { useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 
-export default function EventDetailsPage({ events, coupons }: { events: Record<string, GagnerEvent>, coupons: Coupon[] }) {
-    const { slug } = useParams<{ slug: string }>();
-    const event = slug ? events[slug] : null;
+declare const gsap: any;
 
-    if (!event) return <div className="loading-state">Event Not Found</div>;
+const CheckIcon = () => (
+  <svg className="ed-detail-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+  </svg>
+);
 
-    const applicableCoupons = coupons.filter(c => c.active && (c.eventId === event.slug || c.eventId === 'ALL'));
+export default function EventDetailsPage({ events, coupons }: { events: any, coupons: any[] }) {
+  const { slug } = useParams();
+  const navigate = useNavigate();
+  const event = events[slug || ''] || Object.values(events)[0];
 
-    return (
-        <div className="event-details-wrap" style={{ padding: '12rem 4rem 8rem' }}>
-            <div className="ed-header">
-                <Link to="/" className="btn-neon-mini">← BACK TO HOME</Link>
-                <h1 className="brutal-heading-large">{event.title}</h1>
-                <div className="ed-meta">
-                    <span className="ec-tag">{event.tag}</span>
-                    <span className="ec-date">{event.date} • {event.venue}</span>
-                </div>
-            </div>
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    gsap.fromTo('.ed-title-wrapper', { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power4.out", delay: 0.5 });
+    gsap.fromTo('.ed-timer-wrapper', { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power3.out", delay: 0.8 });
+    gsap.fromTo('.ed-main', { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power3.out", delay: 1.0 });
+  }, [slug]);
 
-            <div className="ed-content-grid">
-                <div className="ed-main">
-                    <img className="ed-hero" src={event.bgImg} alt={event.title} />
-                    <div className="ed-description">
-                        <h2>ABOUT THE EVENT</h2>
-                        <p>{event.desc}</p>
-                    </div>
-                </div>
+  if (!event) return <div className="p-20 text-center">Event not found.</div>;
 
-                <div className="ed-side">
-                    <div className="booking-card-premium">
-                        <h3>REGISTRATION</h3>
-                        <div className="pricing-grid">
-                            {event.categories?.map((cat, i) => (
-                                <div key={i} className="pricing-item">
-                                    <span>{cat.name}</span>
-                                    <span className="price">₹{cat.price}</span>
-                                </div>
-                            ))}
-                        </div>
-                        {event.status === 'Open' ? (
-                            <Link to={`/register/${event.slug}`} className="btn-brand hover-kinetic full-width">REGISTER NOW →</Link>
-                        ) : (
-                            <button className="btn-brand full-width" disabled style={{ opacity: 0.5, filter: 'grayscale(1)' }}>
-                                {event.status?.toUpperCase() || 'REGISTRATION CLOSED'}
-                            </button>
-                        )}
-                        {event.capacity && (
-                           <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-gray)', textAlign: 'center' }}>
-                               {event.registeredCount || 0} / {event.capacity} Slots Filled
-                           </div>
-                        )}
-                    </div>
+  return (
+    <div className="event-detail-page-mad">
+      <header className="ed-hero" id="ed-hero">
+          <div className="ed-hero-bg">
+              <img src={event.bgImg || event.imageUrl || `/images/${event.slug?.replace(/-/g, '_')}.png`} alt={event.title} id="ed-bg-img" />
+          </div>
+          <div className="ed-hero-overlay"></div>
+          
+          <div className="ed-hero-content">
+              <div className="ed-title-wrapper">
+                  <div className="ed-badge" id="ed-hero-tag">{event.tag || 'PREMIUM EVENT'}</div>
+                  <h1 className="ed-title" id="ed-hero-title">{event.title}</h1>
+              </div>
+              
+              <div className="ed-timer-wrapper">
+                  <div className="ed-timer-header">REGISTRATION CLOSES IN</div>
+                  <div className="ed-timer-blocks" id="countdown-timer">
+                      <div className="ed-time-block"><div className="ed-time-value">25</div><div className="ed-time-label">DAYS</div></div>
+                      <div className="ed-colon">:</div>
+                      <div className="ed-time-block"><div className="ed-time-value">13</div><div className="ed-time-label">HOURS</div></div>
+                      <div className="ed-colon">:</div>
+                      <div className="ed-time-block"><div className="ed-time-value">59</div><div className="ed-time-label">MINS</div></div>
+                      <div className="ed-colon">:</div>
+                      <div className="ed-time-block"><div className="ed-time-value">42</div><div className="ed-time-label">SECS</div></div>
+                  </div>
+              </div>
+          </div>
+      </header>
 
-                    <div className="coupons-card">
-                        <h4>AVAILABLE OFFERS</h4>
-                        {applicableCoupons.map(c => (
-                            <div key={c.id} className="coupon-item">
-                                <div className="coupon-code">{c.code}</div>
-                                <div className="coupon-benefit">{c.discountPercent}% OFF</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+      <main className="ed-main">
+          <div className="ed-left-content">
+              <div className="ed-meta-grid">
+                  <div className="ed-meta-card hover-target"><div className="ed-meta-label">DATE</div><div className="ed-meta-value">{event.date}</div></div>
+                  <div className="ed-meta-card hover-target"><div className="ed-meta-label">TIME</div><div className="ed-meta-value">{event.time || '5:30 AM Onwards'}</div></div>
+                  <div className="ed-meta-card hover-target" style={{gridColumn: 'span 2'}}><div className="ed-meta-label">VENUE</div><div className="ed-meta-value">{event.venue || 'Chennai, India'}</div></div>
+              </div>
+
+              <div className="ed-section">
+                  <h2 className="ed-section-title">ABOUT THE <span className="green" style={{marginLeft: '8px'}}>EVENT</span></h2>
+                  <div className="ed-desc-text">
+                      <p>{event.description || event.desc || 'Join us for this amazing premium event!'}</p>
+                  </div>
+              </div>
+
+              <div className="ed-section">
+                  <h2 className="ed-section-title">CATEGORIES & <span className="green" style={{marginLeft: '8px'}}>PRIZES</span></h2>
+                  <div className="ed-categories">
+                      {event.categories?.map((cat: any, idx: number) => (
+                          <div key={idx} className="ed-category-card">
+                              <div className="ed-cat-header">
+                                  <div className="ed-cat-title">{cat.name}</div>
+                                  <div className="ed-cat-price">{cat.price}</div>
+                              </div>
+                              <div className="ed-cat-details">
+                                  {cat.details?.map((d: string, i: number) => (
+                                      <div key={i} className="ed-detail-row"><CheckIcon /> {d}</div>
+                                  ))}
+                              </div>
+                              {cat.prizes && (
+                                  <div className="ed-prize-pool">
+                                      <div style={{color:'var(--secondary)', fontSize:'0.8rem', letterSpacing:'2px', fontWeight:800, marginBottom:'1rem'}}>CASH PRIZES</div>
+                                      {cat.prizes["1st"] && <div className="ed-prize-row"><span style={{color:'#FFD700'}}>🥇 1st Place</span> <span>{cat.prizes["1st"]}</span></div>}
+                                      {cat.prizes["2nd"] && <div className="ed-prize-row"><span style={{color:'#C0C0C0'}}>🥈 2nd Place</span> <span>{cat.prizes["2nd"]}</span></div>}
+                                      {cat.prizes["3rd"] && <div className="ed-prize-row"><span style={{color:'#CD7F32'}}>🥉 3rd Place</span> <span>{cat.prizes["3rd"]}</span></div>}
+                                  </div>
+                              )}
+                          </div>
+                      ))}
+                  </div>
+              </div>
+              
+              <div className="ed-section">
+                  <h2 className="ed-section-title">PARTICIPANT <span className="primary" style={{marginLeft: '8px'}}>DELIVERABLES</span></h2>
+                  <div className="ed-deliverables-grid">
+                      {(event.deliverables || ["Event T-Shirt", "Finisher Medal", "E-Certificate", "Breakfast"]).map((del: string, idx: number) => (
+                          <div key={idx} className="ed-deliverable-item"><CheckIcon /> <span>{del}</span></div>
+                      ))}
+                  </div>
+              </div>
+          </div>
+
+          <div className="ed-right-content">
+              <div className="ed-form-panel">
+                  <div className="ed-form-header">
+                      <h2 className="ed-form-title">SECURE YOUR <span className="primary">SPOT</span></h2>
+                      <p className="ed-form-subtitle">Join thousands of elite participants. Select your category and confirm your registration below.</p>
+                  </div>
+                  
+                  <form onSubmit={(e) => { e.preventDefault(); navigate(`/register/${event.slug}`); }}>
+                      <div className="ed-input-wrapper">
+                          <input type="text" className="ed-input" placeholder=" " required />
+                          <label className="ed-label">FULL NAME</label>
+                      </div>
+                      
+                      <div className="ed-input-wrapper">
+                          <input type="email" className="ed-input" placeholder=" " required />
+                          <label className="ed-label">EMAIL ADDRESS</label>
+                      </div>
+                      
+                      <div className="ed-input-wrapper">
+                          <input type="tel" className="ed-input" placeholder=" " required />
+                          <label className="ed-label">PHONE NUMBER</label>
+                      </div>
+                      
+                      <div className="ed-input-wrapper">
+                          <select className="ed-input" required defaultValue="">
+                              <option value="" disabled></option>
+                              {event.categories?.map((cat: any, idx: number) => (
+                                  <option key={idx} value={cat.name}>{cat.name} - {cat.price}</option>
+                              ))}
+                          </select>
+                          <label className="ed-label">SELECT CATEGORY</label>
+                      </div>
+                      
+                      <button type="submit" className="ed-submit-btn hover-target">CONFIRM ENTRY</button>
+                  </form>
+              </div>
+          </div>
+      </main>
+    </div>
+  );
 }

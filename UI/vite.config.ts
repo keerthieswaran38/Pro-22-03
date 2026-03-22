@@ -27,8 +27,8 @@ function adminRewrite(): Plugin {
 export default defineConfig({
     plugins: [react(), adminRewrite()],
     server: {
-        port: 3004,
-        strictPort: true,
+        port: 3006,
+        strictPort: false,
         proxy: {
             '/api': 'http://localhost:5000'
         }

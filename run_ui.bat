@@ -1,5 +1,7 @@
 @echo off
-echo Starting the UI dev server...
+echo Starting the Gagner Sports Backend...
 cd UI
-npm run dev
+start "Gagner Backend" node server.cjs
+echo Starting the UI dev server...
+call npm run dev
 pause

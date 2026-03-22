@@ -27,13 +27,13 @@ const saveLocal = () => fs.writeFileSync(DB_PATH, JSON.stringify(localState, nul
 dns.setDefaultResultOrder('ipv4first');
 
 // --- MONGODB_URI (SRV with IPv4 Preference) ---
-async function connectDB(retries = 5) {
+async function connectDB(retries = 1) {
     const uri = process.env.MONGODB_URI || "mongodb+srv://gagner_sports:gagner2026sports@gagnersports.nxw3p4l.mongodb.net/gagnersports";
 
     for (let i = 1; i <= retries; i++) {
         try {
-            console.log(`📡 [Attempt ${i}/5] Connecting to Atlas (Database: gagnersports)...`);
-            await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
+            console.log(`📡 [Attempt ${i}/1] Connecting to Atlas (Database: gagnersports)...`);
+            await mongoose.connect(uri, { serverSelectionTimeoutMS: 3000 });
             console.log('\x1b[32m%s\x1b[0m', '------------------------------------------------');
             console.log('\x1b[32m%s\x1b[0m', '🚀 GREEN: Connection 100% stable (Atlas SRV)');
             console.log('\x1b[32m%s\x1b[0m', '✅ Status: Authentication Successful');

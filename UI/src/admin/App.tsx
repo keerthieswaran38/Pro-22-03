@@ -55,7 +55,7 @@ function AdminLayout() {
 
   useEffect(() => {
     setLoading(true);
-    const t = setTimeout(() => setLoading(false), 350);
+    const t = setTimeout(() => setLoading(false), 50);
     return () => clearTimeout(t);
   }, [location.pathname]);
 

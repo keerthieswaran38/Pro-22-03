@@ -1,26 +1,32 @@
 {
   "events": {
     "chennai-juniorthon-2026": {
-      "slug": "chennai-juniorthon-2026",
-      "title": "Chennai Juniorthon 2026",
+      "title": "Madras Juniorthon 2026",
       "tag": "KIDS",
-      "date": "2026-06-15",
-      "time": "06:00 AM",
+      "date": "Invalid Date",
+      "time": "12:00 AM – 12:03 PM",
       "venue": "Island Grounds, Chennai",
-      "bgImg": "/src/assets/images/chennai_juniorthon.png",
       "desc": "India’s largest junior run.",
-      "registrationOpen": true,
-      "status": "Open",
+      "bgImg": "/src/assets/images/chennai_juniorthon.png",
+      "categories": [
+        {
+          "name": "Kid (1-4km)",
+          "price": "₹650",
+          "details": []
+        }
+      ],
       "deliverables": [
         "Finisher Medal",
         "Breakfast"
       ],
-      "categories": [
-        {
-          "name": "Kid (1-4km)",
-          "price": "650"
-        }
-      ]
+      "registrationOpen": true,
+      "registrationStart": "",
+      "registrationEnd": "",
+      "rules": "",
+      "prizes_desc": "",
+      "contact_email": "",
+      "contact_phone": "",
+      "isDraft": false
     },
     "womens-day-run-2026": {
       "slug": "womens-day-run-2026",
@@ -93,6 +99,38 @@
       "category": "5K Run",
       "paymentStatus": "Paid",
       "registeredAt": "2026-03-20T08:47:33.330Z"
+    },
+    {
+      "id": "P-1774170991790-xm1jg",
+      "name": "kee",
+      "email": "test@gmail.com",
+      "phone": "89654712365",
+      "gender": "Male",
+      "age": "10",
+      "tshirtSize": "24",
+      "category": "5K Run",
+      "city": "N/A",
+      "ageGroup": "10",
+      "eventSlug": "womens-day-run-2026",
+      "eventName": "Women's Day Run 2026",
+      "registeredAt": "2026-03-22T09:16:31.791Z",
+      "paymentStatus": "Pending"
+    },
+    {
+      "id": "P-1774170992096-anu6s",
+      "name": "test",
+      "email": "Tsbd@gmail.com",
+      "phone": "89636",
+      "gender": "Female",
+      "age": "25",
+      "tshirtSize": "36",
+      "category": "5K Run",
+      "city": "N/A",
+      "ageGroup": "25",
+      "eventSlug": "womens-day-run-2026",
+      "eventName": "Women's Day Run 2026",
+      "registeredAt": "2026-03-22T09:16:32.096Z",
+      "paymentStatus": "Pending"
     }
   ],
   "coupons": [
@@ -119,6 +157,21 @@
       "createdAt": "2026-03-20T08:47:33.330Z"
     }
   ],
-  "leaderboard": {},
+  "leaderboard": {
+    "chennai-juniorthon-2026": [
+      {
+        "name": "25",
+        "time": "25:02:35"
+      },
+      {
+        "name": "azsx",
+        "time": "12:55:32"
+      },
+      {
+        "name": "sazdxs",
+        "time": "23:25:25"
+      }
+    ]
+  },
   "audit": []
 }

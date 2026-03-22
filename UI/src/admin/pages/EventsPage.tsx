@@ -288,7 +288,9 @@ export default function EventsPage() {
     const val = result.success ? result.data : payload; // If forced auto-draft, preserve raw
     const finalDraftState = forceDraft ? true : (val.isDraft || false);
 
+    const slug = editingSlug || payload.slug;
     const eventData: GagnerEvent = {
+      slug,
       title: val.title || 'Draft Event', 
       tag: val.tag || 'MARATHON', 
       date: val.date || '', 
@@ -310,7 +312,6 @@ export default function EventsPage() {
       latLng: mapCoords ? { lat: mapCoords.lat, lng: mapCoords.lng } : undefined,
     };
 
-    const slug = editingSlug || payload.slug;
     const nextEvents = { ...eventsObj, [slug]: eventData };
 
     mutation.mutate(nextEvents);
