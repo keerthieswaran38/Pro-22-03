@@ -3599,3 +3599,96 @@ body {
     .mobile-menu { width: 100%; max-width: 100%; }
 }
 
+/* ==================================================
+   RESPONSIVE OVERRIDES (Global Fixes for 1024, 768, 480)
+   ================================================== */
+@media (max-width: 1024px) {
+    .section-heading-wrap { padding: 0 2rem !important; }
+    .services-horizontal-unique { padding: 0; overflow: hidden; }
+    .heading-unique { font-size: clamp(2rem, 8vw, 4rem); }
+}
+
+@media (max-width: 768px) {
+    .section-heading-wrap { padding: 0 1.5rem !important; }
+    
+    /* Ensure background text doesn't cause horizontal overflow */
+    .bg-text-watermark, .section-bg-text, .gallery-bg-text { 
+        font-size: 3rem !important;
+        opacity: 0.02;
+    }
+    
+    /* Hero layout adjustments */
+    .hero-title { font-size: clamp(1.8rem, 8vw, 3rem); line-height: 1.2; word-wrap: break-word; }
+    .hero-brutal { padding: 80px 1.5rem 2rem; flex-direction: column-reverse; height: auto; gap: 2rem; text-align: center; }
+    .hero-content { align-items: center; }
+    .hero-visual { width: 100%; height: 40vh; margin-top: 2rem; }
+    .hero-title.indent { padding-left: 0; }
+    
+    /* Registration page specific responsive fixes */
+    .event-title-extreme { font-size: 2.5rem !important; text-align: center; }
+    .registration-content-wrapper { padding: 0 1rem !important; gap: 2rem !important; grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 480px) {
+    .nav-minimal { padding: 1rem 1.5rem; }
+    .hero-brutal { padding: 100px 1rem 2rem; }
+    .hero-title { font-size: 2rem; }
+    .hero-visual { height: 35vh; min-height: 250px; }
+    .hero-visual .hero-slide { border-radius: 12px; }
+    
+    .about-massive { padding: 3rem 1.5rem; gap: 1.5rem; }
+    .massive-text { font-size: clamp(2rem, 10vw, 3rem); white-space: normal; line-height: 1.2; }
+    .massive-text.outline { padding-left: 0; }
+    .about-desc p { font-size: 1rem; text-align: left; }
+    
+    .heading-unique { font-size: 2rem; word-wrap: break-word; }
+    .section-heading-wrap { padding: 0 1rem !important; width: 100%; box-sizing: border-box; }
+    
+    /* Stats grid */
+    .stats-section { padding: 2rem 1rem; }
+    .stats-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+    .stat-item { padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .stat-item:last-child { border-bottom: none; }
+    .stat-item::after { display: none; }
+    .stat-number { font-size: 2.5rem; }
+    .stat-label { font-size: 0.8rem; letter-spacing: 2px; margin-top: 0.5rem; }
+    
+    /* Services (Convert to vertical stack) */
+    .services-pin-content { padding: 2rem 0; height: auto; display: flex; flex-direction: column; overflow: hidden; }
+    .services-track-new { 
+        display: flex; 
+        flex-direction: column; 
+        width: 100%; 
+        padding: 0 1.5rem !important;
+        gap: 2rem; 
+        align-items: center; 
+        transform: none !important; 
+    }
+    .service-slide { flex: none; width: 100%; height: 350px; max-width: 400px; margin: 0 auto; box-sizing: border-box; }
+    .ss-info h3 { font-size: 1.5rem; }
+    .sc-num { font-size: 2rem; }
+    
+    /* Events */
+    .events-stack { padding: 0 1rem !important; gap: 4rem; }
+    .esi-img { height: 250px; }
+    .esi-content h3 { font-size: 1.6rem !important; }
+    
+    .gallery-grid { grid-template-columns: 1fr !important; padding: 0 1rem !important; gap: 1rem !important; }
+    .gallery-clean-section { padding: 4rem 0 !important; }
+    
+    /* Contact */
+    .contact-form { padding: 0 1rem !important; }
+    
+    /* Footer */
+    .footer-bottom-bar { font-size: 0.75rem; text-align: center; display: flex; flex-wrap: wrap; justify-content: center; line-height: 1.6; }
+    .footer-links { width: 100%; justify-content: center; gap: 1.5rem; margin-top: 1rem; }
+    
+    .mobile-menu { width: 100%; max-width: 100%; }
+    
+    /* Registration form fix for tiny screens */
+    .form-glass-card { padding: 1.5rem !important; }
+    .tc-selector { flex-wrap: wrap; gap: 1rem; }
+    
+    /* Kill background texts causing overflow */
+    .bg-text-watermark, .section-bg-text, .gallery-bg-text { display: none !important; }
+}

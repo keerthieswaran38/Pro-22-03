@@ -40,48 +40,67 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
     const servicesSection = document.querySelector('.services-horizontal-unique') as HTMLElement;
     const servicesTrack = document.querySelector('.services-track-new') as HTMLElement;
 
+    // Kill any leftover services ScrollTrigger from previous mount
+    const existingST = ScrollTrigger.getById("servicesHorizontal");
+    if (existingST) existingST.kill(true);
+
     if (servicesSection && servicesTrack) {
-        const getScrollAmount = () => {
-            const trackWidth = servicesTrack.scrollWidth;
-            const viewportWidth = document.documentElement.clientWidth;
-            return Math.max(0, trackWidth - viewportWidth);
-        };
+        // Reset any leftover transform from previous GSAP run
+        gsap.set(servicesTrack, { x: 0, clearProps: "transform" });
 
-        const horizontalST = gsap.to(servicesTrack, {
-            x: () => -getScrollAmount(),
-            ease: "none",
-            scrollTrigger: {
-                id: "servicesHorizontal",
-                trigger: servicesSection,
-                pin: true,
-                start: "top top",
-                end: () => `+=${getScrollAmount()}`,
-                scrub: 1,
-                invalidateOnRefresh: true,
-                onUpdate: (self: any) => {
-                  const head = document.querySelector('#services .heading-unique');
-                  if (head) {
-                      gsap.set(head, { x: (self.progress * 100) - 20 });
-                  }
-                }
-            }
-        });
+        let mm = gsap.matchMedia();
+        mm.add("(min-width: 769px)", () => {
+            const getScrollAmount = () => {
+                const trackWidth = servicesTrack.scrollWidth;
+                const viewportWidth = document.documentElement.clientWidth;
+                return Math.max(0, trackWidth - viewportWidth);
+            };
 
-        gsap.utils.toArray('.ss-img img').forEach((img: any) => {
-            gsap.fromTo(img, 
-                { xPercent: -10 },
-                {
-                    xPercent: 10,
-                    ease: "none",
-                    scrollTrigger: {
-                        trigger: img.closest('.service-slide'),
-                        containerAnimation: horizontalST,
-                        start: "left right",
-                        end: "right left",
-                        scrub: true
+            const horizontalST = gsap.to(servicesTrack, {
+                x: () => -getScrollAmount(),
+                ease: "none",
+                scrollTrigger: {
+                    id: "servicesHorizontal",
+                    trigger: servicesSection,
+                    pin: true,
+                    pinSpacing: true,
+                    anticipatePin: 1,
+                    start: "top top",
+                    end: () => `+=${getScrollAmount()}`,
+                    scrub: 1,
+                    invalidateOnRefresh: true,
+                    onUpdate: (self: any) => {
+                      const head = document.querySelector('#services .heading-unique');
+                      if (head) {
+                          gsap.set(head, { x: (self.progress * 100) - 20 });
+                      }
                     }
                 }
-            );
+            });
+
+            gsap.utils.toArray('.ss-img img').forEach((img: any) => {
+                gsap.fromTo(img, 
+                    { xPercent: -10 },
+                    {
+                        xPercent: 10,
+                        ease: "none",
+                        scrollTrigger: {
+                            trigger: img.closest('.service-slide'),
+                            containerAnimation: horizontalST,
+                            start: "left right",
+                            end: "right left",
+                            scrub: true
+                        }
+                    }
+                );
+            });
+            
+            return () => {
+                // Kill this specific trigger on matchMedia revert
+                const st = ScrollTrigger.getById("servicesHorizontal");
+                if (st) st.kill(true);
+                gsap.set(servicesTrack, { clearProps: "all" });
+            };
         });
     }
 
@@ -246,8 +265,12 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
 
     return () => {
         if (slideInterval) clearInterval(slideInterval);
-        heroTl.kill(); // Kill the hero timeline to prevent conflicts
-        ScrollTrigger.getAll().forEach((t: any) => t.kill());
+        heroTl.kill();
+        // Kill ALL ScrollTriggers and reset pinned elements
+        ScrollTrigger.getAll().forEach((t: any) => t.kill(true));
+        // Reset services track transform to prevent stale state on re-mount
+        const track = document.querySelector('.services-track-new') as HTMLElement;
+        if (track) gsap.set(track, { clearProps: "all" });
     };
   }, [events]);
 
@@ -316,7 +339,7 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
 
       <section id="services" className="services-horizontal-unique">
           <div className="services-pin-content">
-              <div className="section-heading-wrap" style={{ padding: '0 4rem' }}>
+              <div className="section-heading-wrap">
                 <h2 className="heading-unique">
                     <span className="outline">OUR</span> <span className="filled">SERVICES</span>
                 </h2>
@@ -344,7 +367,7 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
       </section>
 
       <section id="events" className="events-vertical-unique">
-          <div className="section-heading-wrap" style={{ padding: '0 4rem' }}>
+          <div className="section-heading-wrap">
               <h2 className="heading-unique">
                   <span className="filled">UPCOMING</span>
                   <span className="outline">SERIES</span>
@@ -475,7 +498,7 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
 
 
       <section id="blogs" className="blogs-section-brutal">
-          <div className="section-heading-wrap" style={{ padding: '0 4rem', marginBottom: '4rem' }}>
+          <div className="section-heading-wrap" style={{ marginBottom: '4rem' }}>
               <h2 className="heading-unique">
                   <span className="filled">LATEST</span>
                   <span className="outline">INSIGHTS</span>
@@ -519,7 +542,7 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
       </section>
 
       <section id="sponsors" style={{ padding: '6rem 0', background: '#111', overflow: 'hidden', borderTop: '1px solid #222' }}>
-          <div className="section-heading-wrap" style={{ padding: '0 4rem', marginBottom: '3rem' }}>
+          <div className="section-heading-wrap" style={{ marginBottom: '3rem' }}>
               <h2 className="heading-unique" style={{ fontSize: 'clamp(2.5rem, 8vw, 5rem)' }}>
                   <span className="outline">OUR</span>
                   <span className="filled">PARTNERS</span>

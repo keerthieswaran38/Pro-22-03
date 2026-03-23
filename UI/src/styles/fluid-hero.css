@@ -1,0 +1,202 @@
+/* ============================================================
+   FLUID LAYOUT SYSTEM — Overrides for responsive full-width 
+   ============================================================ */
+
+/* === GLOBAL FULL-WIDTH ENFORCEMENT === */
+html, body {
+    width: 100%;
+    overflow-x: hidden;
+}
+
+.landing-page-mad,
+.user-world-container,
+#smooth-wrapper,
+#smooth-content {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* === SECTION HEADING — Default padding (was removed from inline) === */
+.section-heading-wrap {
+    padding: 0 4rem;
+}
+
+/* === HERO SECTION — Fluid Grid Layout === */
+.hero-brutal {
+    height: auto;
+    min-height: 100vh;
+    padding: 120px 4rem 4rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    align-items: center;
+    gap: 4rem;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.hero-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: auto;
+    user-select: text;
+}
+
+.hero-title {
+    position: relative;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin: 0;
+    overflow: visible;
+    word-wrap: break-word;
+}
+.hero-title span {
+    display: inline-block;
+    user-select: text !important;
+    cursor: text !important;
+}
+
+.hero-title.indent {
+    padding-left: 0;
+}
+
+/* Hero Visual — Grid stacking for slides (replaces position: absolute) */
+.hero-visual {
+    width: 100%;
+    min-height: 50vh;
+    max-height: 75vh;
+    display: grid;
+    grid-template-areas: "slide";
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    position: relative;
+    z-index: 5;
+    border-radius: 40px;
+    overflow: hidden;
+}
+
+.hero-visual .hero-slide {
+    grid-area: slide;
+    width: 100%;
+    height: 100%;
+    min-height: 50vh;
+    max-height: 75vh;
+    object-fit: cover;
+    opacity: 0;
+    z-index: 1;
+    border: none;
+    background: var(--bg-dark);
+    position: relative !important;
+}
+
+.hero-visual .hero-slide.active {
+    opacity: 1;
+    z-index: 10;
+}
+
+/* Hero Footer — Relative, not absolute */
+.hero-footer {
+    position: relative;
+    bottom: auto; left: auto; right: auto;
+    margin-top: 3rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    width: 100%;
+    opacity: 1 !important;
+}
+
+/* === SERVICES — Full-width fix for horizontal scroll section === */
+.services-horizontal-unique {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden;
+}
+
+.services-pin-content {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Fix GSAP pin-spacer inheriting wrong width */
+.pin-spacer {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* === ALL FULL-WIDTH SECTIONS === */
+.about-massive,
+.stats-section,
+.events-vertical-unique,
+.gallery-clean-section,
+.blogs-section-brutal,
+.contact-section,
+.footer-full {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* === 1440px LAPTOP FIX === */
+@media (max-width: 1440px) {
+    .hero-title {
+        font-size: clamp(3rem, 6vw, 7rem) !important;
+        line-height: 1.05;
+    }
+}
+
+/* === 1024px TABLET LANDSCAPE === */
+@media (max-width: 1024px) {
+    .hero-brutal {
+        grid-template-columns: 1fr;
+        padding: 100px 3rem 3rem;
+        gap: 2rem;
+    }
+    .hero-title {
+        font-size: clamp(2.5rem, 8vw, 4rem) !important;
+        text-align: center;
+    }
+    .hero-title.indent {
+        padding-left: 0;
+        text-align: center;
+    }
+    .hero-footer {
+        justify-content: center;
+        text-align: center;
+    }
+    .section-heading-wrap {
+        padding: 0 2rem;
+    }
+}
+
+/* === 768px MOBILE — Text Top, Image Bottom === */
+@media (max-width: 768px) {
+    .hero-brutal {
+        padding: 90px 1.5rem 2rem;
+    }
+    .hero-content {
+        order: 1;
+    }
+    .hero-visual {
+        order: 2;
+        min-height: 35vh;
+        max-height: 50vh;
+        border-radius: 20px;
+    }
+    .hero-visual .hero-slide {
+        min-height: 35vh;
+        max-height: 50vh;
+    }
+    .hero-title {
+        font-size: clamp(2.5rem, 10vw, 4rem) !important;
+    }
+    .section-heading-wrap {
+        padding: 0 1.5rem;
+    }
+}

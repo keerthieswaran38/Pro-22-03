@@ -13,13 +13,18 @@ const queryClient = new QueryClient({
     }
 });
 
+import { ConfigProvider } from 'antd';
+import { gagnerTheme } from '../shared/theme';
+
 // Root Rendering
 const rootElement = document.getElementById('user-app-root');
 if (rootElement) {
     ReactDOM.createRoot(rootElement).render(
         <React.StrictMode>
             <QueryClientProvider client={queryClient}>
-                <UserApp />
+                <ConfigProvider theme={gagnerTheme}>
+                    <UserApp />
+                </ConfigProvider>
             </QueryClientProvider>
         </React.StrictMode>
     );
