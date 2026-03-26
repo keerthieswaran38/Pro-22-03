@@ -53,12 +53,15 @@ export type CouponFormData = z.infer<typeof couponSchema>;
 
 /* ─── CONTENT SCHEMA ─── */
 export const contentSchema = z.object({
-  type: z.enum(['image', 'logo', 'sponsor', 'content'], {
+  type: z.enum(['image', 'logo', 'sponsor', 'content', 'gallery', 'service', 'contact'], {
     errorMap: () => ({ message: 'Select a valid type' }),
   }),
-  title: z.string().min(2, 'Title required (min 2 chars)').max(80, 'Title too long'),
+  title: z.string().max(80, 'Title too long').optional().default(''),
   imageUrl: z.string().max(500, 'URL too long').optional().default(''),
-  description: z.string().max(500, 'Description too long').optional().default(''),
+  description: z.string().max(2000, 'Description too long').optional().default(''),
+  link: z.string().max(500, 'Link too long').optional().default(''),
+  buttonName: z.string().max(80, 'Button name too long').optional().default(''),
+  metadata: z.any().optional(),
   order: z.number().min(0).max(999).optional().default(1),
   active: z.boolean().optional().default(true),
 });

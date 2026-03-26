@@ -15,6 +15,11 @@ import ParticipantsPage from './pages/ParticipantsPage';
 import CouponsPage from './pages/CouponsPage';
 import AuditLogPage from './pages/AuditLogPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import DMSHub from './pages/DMSHub';
+import DMSGalleries from './pages/DMSGalleries';
+import DMSLogo from './pages/DMSLogo';
+import DMSContact from './pages/DMSContact';
+import DMSSponsors from './pages/DMSSponsors';
 
 const { Content } = Layout;
 
@@ -61,6 +66,7 @@ function AdminLayout() {
 
   const selectedKey = (() => {
     const path = location.pathname.replace('/admin/', '').replace('/admin', '');
+    if (path.startsWith('dms')) return 'dms';
     return path || 'dashboard';
   })();
 
@@ -107,6 +113,11 @@ function AdminLayout() {
               <Route path="events" element={<EventsPage />} />
               <Route path="leaderboard" element={<LeaderboardPage />} />
               <Route path="content" element={<ContentCMS />} />
+              <Route path="dms" element={<DMSHub />} />
+              <Route path="dms-galleries" element={<DMSGalleries />} />
+              <Route path="dms-logo" element={<DMSLogo />} />
+              <Route path="dms-contact" element={<DMSContact />} />
+              <Route path="dms-sponsors" element={<DMSSponsors />} />
               <Route path="participants" element={<ParticipantsPage />} />
               <Route path="coupons" element={<CouponsPage />} />
               <Route path="audit" element={<AuditLogPage />} />

@@ -140,9 +140,9 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
             <div className="registration-success-wrap" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0a0a0a' }}>
                 <div className="success-content" style={{ background: '#111', padding: '4rem', borderRadius: '20px', border: '1px solid #222', textAlign: 'center', maxWidth: '500px', margin: '0 1.5rem' }}>
                     <div style={{ fontSize: '4rem', color: '#00c853', marginBottom: '1rem' }}>✓</div>
-                    <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#fff' }}>{participants.length} ATTENDEE{participants.length > 1 ? 'S' : ''} CONFIRMED</h2>
+                    <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#fff' }}>{(participants || []).length} ATTENDEE{(participants || []).length > 1 ? 'S' : ''} CONFIRMED</h2>
                     <p style={{ color: '#aaa', fontSize: '1.1rem', marginBottom: '0.5rem' }}>
-                        {participants.map(p => p.name).join(', ')} registered for <strong style={{color:'#fff'}}>{event.title}</strong>.
+                        {(participants || []).map(p => p.name).join(', ')} registered for <strong style={{color:'#fff'}}>{event?.title || 'Event'}</strong>.
                     </p>
                     <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '2rem' }}>Redirecting to home...</p>
                     <Link to="/" style={{ background: '#ff5f00', color: '#fff', padding: '1rem 2rem', textDecoration: 'none', fontWeight: 700, borderRadius: '12px', display: 'inline-block' }}>BACK TO HOME</Link>
@@ -190,7 +190,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                     </div>
 
                     <div className="deliverables-unique">
-                      {event.deliverables?.map((d, i) => (
+                      {(event?.deliverables || []).map((d, i) => (
                           <div key={i} className="del-pill">
                               <span className="check">✓</span> {d}
                           </div>
@@ -277,7 +277,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                                         <div className="category-select-premium">
                                             <label>CHOOSE CATEGORY</label>
                                             <div className="cat-options-grid">
-                                                {event.categories?.map((cat, i) => (
+                                                {(event?.categories || []).map((cat, i) => (
                                                     <div key={i} className={`cat-card-option ${currentForm.category === cat.name ? 'selected' : ''}`} onClick={() => setCurrentForm(f => ({ ...f, category: cat.name }))}>
                                                         <div className="cat-info">
                                                             <span className="cat-name">{cat.name}</span>
@@ -305,7 +305,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                                 {participants.length > 0 && (
                                     <div className="filled-participants-list">
                                         <h4 className="fpl-title">REGISTERED PARTICIPANTS ({participants.length})</h4>
-                                        {participants.map((p, idx) => (
+                                        {(participants || []).map((p, idx) => (
                                             <div key={idx} className={`participant-card ${editingIndex === idx ? 'editing' : ''}`}>
                                                 <div className="pc-header">
                                                     <div className="pc-num">{idx + 1}</div>

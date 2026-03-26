@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Tag, Space, Input, Select, Typography, Card, message, Popconfirm, Skeleton } from 'antd';
-import { TeamOutlined, SearchOutlined, DownloadOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
+import { Table, Button, Tag, Space, Input, Select, Typography, Card, message, Popconfirm, Skeleton, Drawer, Descriptions } from 'antd';
+import { TeamOutlined, SearchOutlined, DownloadOutlined, DeleteOutlined, FilterOutlined, UserOutlined } from '@ant-design/icons';
 import { Participant, getParticipants, saveParticipants } from '../../shared/utils/storage';
 import { logAction } from '../../shared/utils/auditLog';
 import { COLOR_PRIMARY, getPalette } from '../../shared/theme';
@@ -20,6 +20,8 @@ export default function ParticipantsPage() {
   const [genderFilter, setGenderFilter] = useState('');
   const [ageFilter, setAgeFilter] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
 
   useEffect(() => {
     getParticipants().then(data => {
@@ -28,10 +30,10 @@ export default function ParticipantsPage() {
     });
   }, []);
 
-  const cities = useMemo(() => [...new Set(participants.map((p: Participant) => p.city))].sort(), [participants]);
-  const ageGroups = useMemo(() => [...new Set(participants.map((p: Participant) => p.ageGroup))].sort(), [participants]);
+  const cities = useMemo(() => [...new Set((participants || []).map((p: Participant) => p.city))].sort(), [participants]);
+  const ageGroups = useMemo(() => [...new Set((participants || []).map((p: Participant) => p.ageGroup))].sort(), [participants]);
 
-  const filtered = useMemo(() => participants.filter(p => {
+  const filtered = useMemo(() => (participants || []).filter(p => {
     if (searchText) {
       const q = searchText.toLowerCase();
       if (!p.name.toLowerCase().includes(q) && !p.email.toLowerCase().includes(q) && !p.phone.includes(q)) return false;
@@ -57,7 +59,7 @@ export default function ParticipantsPage() {
   const bulkDelete = () => {
     const count = selectedRowKeys.length;
     // Optimistic
-    const remaining = participants.filter(p => !selectedRowKeys.includes(p.id));
+    const remaining = (participants || []).filter(p => !selectedRowKeys.includes(p.id));
     setParticipants(remaining);
     setSelectedRowKeys([]);
     try {
@@ -72,7 +74,7 @@ export default function ParticipantsPage() {
 
   const bulkMarkPaid = () => {
     const count = selectedRowKeys.length;
-    const next = participants.map(p => selectedRowKeys.includes(p.id) ? { ...p, paymentStatus: 'Paid' as const } : p);
+    const next = (participants || []).map(p => selectedRowKeys.includes(p.id) ? { ...p, paymentStatus: 'Paid' as const } : p);
     setParticipants(next);
     setSelectedRowKeys([]);
     try {
@@ -167,9 +169,82 @@ export default function ParticipantsPage() {
 
       <Card bodyStyle={{ padding: 0 }} style={{ background: pal.card, border: 'none', borderRadius: 12, overflow: 'hidden' }}>
         <Table dataSource={filtered} columns={columns} rowKey="id" scroll={{ x: 800 }}
+          onRow={(record) => ({
+            onClick: () => {
+              setSelectedParticipant(record);
+              setDrawerVisible(true);
+            },
+            style: { cursor: 'pointer' }
+          })}
           rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${total} total` }} />
       </Card>
+
+      <Drawer
+        title={<span style={{ fontWeight: 800 }}><UserOutlined style={{ marginRight: 8, color: COLOR_PRIMARY }} />Participant Details</span>}
+        placement="right"
+        width={450}
+        onClose={() => setDrawerVisible(false)}
+        open={drawerVisible}
+        destroyOnClose
+        style={{ background: pal.bg }}
+        headerStyle={{ background: pal.card, borderBottom: `1px solid ${pal.border}` }}
+        bodyStyle={{ background: pal.bg, padding: 24 }}
+      >
+        {selectedParticipant && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, height: '100%' }}>
+            {/* Header / Basic Info */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+               <div>
+                  <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: pal.text }}>{selectedParticipant.name}</h3>
+                  <div style={{ color: pal.textMuted, fontSize: '0.9rem', marginTop: 4 }}>{selectedParticipant.email}</div>
+                  <div style={{ color: pal.textMuted, fontSize: '0.9rem', marginTop: 2 }}>{selectedParticipant.phone}</div>
+               </div>
+               <Tag className={selectedParticipant.paymentStatus === 'Paid' ? 'tag-paid' : selectedParticipant.paymentStatus === 'Pending' ? 'tag-pending' : 'tag-failed'} style={{ borderRadius: 4, padding: '4px 12px', fontWeight: 800, border: 'none' }}>
+                 {selectedParticipant.paymentStatus.toUpperCase()}
+               </Tag>
+            </div>
+
+            {/* Event Info */}
+            <Card size="small" style={{ background: pal.card, borderColor: pal.border, borderRadius: 12 }}>
+               <Descriptions column={1} size="small" labelStyle={{ color: pal.textMuted, width: '100px' }} contentStyle={{ fontWeight: 600, color: pal.text }}>
+                  <Descriptions.Item label="Event">{selectedParticipant.eventName}</Descriptions.Item>
+                  <Descriptions.Item label="Category">{selectedParticipant.category}</Descriptions.Item>
+                  <Descriptions.Item label="Reg. Date">{new Date(selectedParticipant.registeredAt).toLocaleString()}</Descriptions.Item>
+               </Descriptions>
+            </Card>
+
+            {/* Personal Info */}
+            <Card size="small" style={{ background: pal.card, borderColor: pal.border, borderRadius: 12 }}>
+               <Descriptions column={1} size="small" labelStyle={{ color: pal.textMuted, width: '100px' }} contentStyle={{ fontWeight: 600, color: pal.text }}>
+                  <Descriptions.Item label="Gender">{selectedParticipant.gender}</Descriptions.Item>
+                  <Descriptions.Item label="Age Group">{selectedParticipant.ageGroup}</Descriptions.Item>
+                  <Descriptions.Item label="City">{selectedParticipant.city}</Descriptions.Item>
+               </Descriptions>
+            </Card>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 12, marginTop: 'auto', paddingTop: 24 }}>
+               <Button type="primary" style={{ flex: 1, fontWeight: 700, height: 42 }} onClick={() => {
+                  const next = participants.map(p => p.id === selectedParticipant.id ? { ...p, paymentStatus: 'Paid' as const } : p);
+                  setParticipants(next);
+                  saveParticipants(next);
+                  setSelectedParticipant({ ...selectedParticipant, paymentStatus: 'Paid' });
+                  message.success('Marked as PAID');
+               }}>MARK AS PAID</Button>
+               <Popconfirm title="Delete this participant?" onConfirm={() => {
+                  const next = participants.filter(p => p.id !== selectedParticipant.id);
+                  setParticipants(next);
+                  saveParticipants(next);
+                  setDrawerVisible(false);
+                  message.success('Participant deleted');
+               }} okText="Delete" okButtonProps={{ danger: true }}>
+                 <Button danger icon={<DeleteOutlined />} style={{ fontWeight: 700, height: 42 }}>DELETE</Button>
+               </Popconfirm>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

@@ -3,13 +3,18 @@ import { Link } from 'react-router-dom';
 // @ts-ignore
 import logo from '../../assets/images/logo.png';
 
-export default function UserFooter() {
+export default function UserFooter({ content = [] }: { content?: any[] }) {
+  const customAddress = content.find(c => c.type === 'contact' && c.title.toLowerCase().includes('address'))?.description || 'Plot No: 17/18 S.No.485 Jayapriya Nagar, Kolapakkam, Chennai-600128';
+  const customPhone = content.filter(c => c.type === 'contact' && c.title.toLowerCase().includes('phone')).map(c => c.description).join(' | ') || '+91 98405 47782 | +91 96001 93310';
+  const customEmail = content.filter(c => c.type === 'contact' && c.title.toLowerCase().includes('email')).map(c => c.description).join(', ') || 'balaji@gagnersports.com';
+  const customLogo = content.find((c: any) => c.type === 'logo')?.imageUrl || logo;
+
   return (
     <footer className="footer-full">
         <div className="footer-top">
             <div className="footer-col footer-about">
                 <div className="footer-brand">
-                    <img src={logo} alt="Gagner Sports" style={{ height: '50px', objectFit: 'contain' }} />
+                    <img src={customLogo} alt="Gagner Sports" style={{ height: '50px', objectFit: 'contain' }} />
                 </div>
                 <p>GAGNER BUSINESS SOLUTION is aimed at inculcating the value of sport in kids and adults. We offer the Best-in-Class Sports program for kids and adults.</p>
                 <h4 style={{ marginTop: '1.5rem', marginBottom: '0.8rem' }}>FOLLOW US</h4>
@@ -48,13 +53,13 @@ export default function UserFooter() {
             <div className="footer-col footer-contact-info">
                 <h4>CONTACT US</h4>
                 <div className="contact-detail">
-                    <span>Plot No: 17/18 S.No.485 Jayapriya Nagar, Kolapakkam, Chennai-600128</span>
+                    <span>{customAddress}</span>
                 </div>
                 <div className="contact-detail">
-                    <span>+91 98405 47782<br />+91 96001 93310</span>
+                    <span style={{ whiteSpace: 'pre-wrap' }}>{customPhone.replace(/ \| /g, '\n')}</span>
                 </div>
                 <div className="contact-detail">
-                    <span>balaji@gagnersports.com</span>
+                    <span>{customEmail}</span>
                 </div>
             </div>
         </div>

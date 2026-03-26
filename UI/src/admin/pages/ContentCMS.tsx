@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Switch, Tag, Space, Typography, Card, message, Popconfirm, Image, Skeleton } from 'antd';
-import { FileImageOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { FileImageOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import { ContentBlock, getContent, saveContent } from '../../shared/utils/storage';
 import { logAction } from '../../shared/utils/auditLog';
 import { contentSchema, zodToFieldErrors } from '../../shared/utils/schemas';
@@ -8,8 +8,8 @@ import { COLOR_PRIMARY, getPalette } from '../../shared/theme';
 import { useThemeMode } from '../App';
 
 const { Title, Text } = Typography;
-const TYPE_COLORS: Record<string, string> = { image: 'tag-marathon', logo: 'tag-fitness', sponsor: 'tag-family', content: 'tag-kids' };
-const TYPE_LABELS: Record<string, string> = { image: 'IMAGE', logo: 'LOGO', sponsor: 'SPONSOR', content: 'CONTENT' };
+const TYPE_COLORS: Record<string, string> = { image: 'tag-marathon', logo: 'tag-fitness', sponsor: 'tag-family', content: 'tag-kids', gallery: 'tag-marathon', service: 'tag-tech', contact: 'tag-fitness' };
+const TYPE_LABELS: Record<string, string> = { image: 'IMAGE', logo: 'LOGO', sponsor: 'SPONSOR', content: 'CONTENT', gallery: 'GALLERY', service: 'SERVICE', contact: 'CONTACT' };
 
 export default function ContentCMS() {
   const { mode } = useThemeMode();
@@ -23,8 +23,8 @@ export default function ContentCMS() {
   const [typeFilter, setTypeFilter] = useState('');
   const [searchText, setSearchText] = useState('');
 
-  useEffect(() => { setTimeout(() => { setContent(getContent()); setLoading(false); }, 200); }, []);
-  const refresh = () => setContent(getContent());
+  useEffect(() => { getContent().then(data => { setContent(data); setLoading(false); }).catch(() => setLoading(false)); }, []);
+  const refresh = async () => { try { const data = await getContent(); setContent(data); } catch { /* empty state */ } };
   const filtered = content.filter(c => {
     if (typeFilter && c.type !== typeFilter) return false;
     if (searchText) {
@@ -43,28 +43,20 @@ export default function ContentCMS() {
 
   const openEdit = (item: ContentBlock) => {
     setEditingId(item.id); setFormErrors({});
-    form.setFieldsValue({ type: item.type, title: item.title, imageUrl: item.imageUrl, description: item.description, order: item.order, active: item.active });
+    form.setFieldsValue({ type: item.type, title: item.title, imageUrl: item.imageUrl, description: item.description, link: item.link, buttonName: item.buttonName, order: item.order, active: item.active });
     setModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const raw = form.getFieldsValue();
     const parsed = contentSchema.safeParse({ ...raw, order: Number(raw.order) || 1 });
     if (!parsed.success) { setFormErrors(zodToFieldErrors(parsed.error)); message.error('Fix highlighted errors'); return; }
     setFormErrors({});
     const val = parsed.data;
-
-    // Optimistic update
-    if (editingId) {
-      setContent(prev => prev.map(c => c.id === editingId ? { ...c, ...val } as ContentBlock : c));
-    } else {
-      const newItem: ContentBlock = { id: 'cnt' + Date.now().toString(36), ...val } as ContentBlock;
-      setContent(prev => [...prev, newItem]);
-    }
     setModalOpen(false);
 
     try {
-      const all = getContent();
+      const all = await getContent();
       if (editingId) {
         const idx = all.findIndex(c => c.id === editingId);
         if (idx >= 0) { all[idx] = { ...all[idx], ...val } as ContentBlock; logAction('CONTENT_UPDATED', val.title, `Type: ${val.type}`); }
@@ -72,25 +64,26 @@ export default function ContentCMS() {
         all.push({ id: 'cnt' + Date.now().toString(36), ...val } as ContentBlock);
         logAction('CONTENT_CREATED', val.title, `Type: ${val.type}`);
       }
-      saveContent(all);
+      await saveContent(all);
       message.success(editingId ? 'Content updated' : 'Content created');
-      refresh();
-    } catch { refresh(); message.error('Save failed — rolled back'); }
+      await refresh();
+    } catch { await refresh(); message.error('Save failed — rolled back'); }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const item = content.find(c => c.id === id);
     setContent(prev => prev.filter(c => c.id !== id)); // optimistic
     try {
-      saveContent(getContent().filter(c => c.id !== id));
+      const all = await getContent();
+      await saveContent(all.filter(c => c.id !== id));
       logAction('CONTENT_DELETED', item?.title || id, '');
       message.success('Content deleted');
-    } catch { refresh(); message.error('Delete failed'); }
+    } catch { await refresh(); message.error('Delete failed'); }
   };
 
-  const toggleActive = (id: string, active: boolean) => {
+  const toggleActive = async (id: string, active: boolean) => {
     setContent(prev => prev.map(c => c.id === id ? { ...c, active } : c));
-    try { const all = getContent(); const idx = all.findIndex(c => c.id === id); if (idx >= 0) { all[idx].active = active; saveContent(all); } } catch { refresh(); }
+    try { const all = await getContent(); const idx = all.findIndex(c => c.id === id); if (idx >= 0) { all[idx].active = active; await saveContent(all); } } catch { await refresh(); }
   };
 
   const labelStyle = { fontWeight: 700, letterSpacing: '1px', fontSize: '0.7rem', color: pal.textDim } as React.CSSProperties;
@@ -148,7 +141,7 @@ export default function ContentCMS() {
             size="small" 
           />
           <Select placeholder="Filter by type" value={typeFilter || undefined} onChange={(v) => setTypeFilter(v || '')} allowClear style={{ width: 140 }} size="small"
-            options={[{ value: 'image', label: 'Images' }, { value: 'logo', label: 'Logos' }, { value: 'sponsor', label: 'Sponsors' }, { value: 'content', label: 'Content' }]} />
+            options={[{ value: 'image', label: 'Images' }, { value: 'logo', label: 'Logos' }, { value: 'sponsor', label: 'Sponsors' }, { value: 'content', label: 'Content' }, { value: 'gallery', label: 'Gallery' }, { value: 'service', label: 'Service' }, { value: 'contact', label: 'Contact' }]} />
         </Space>
       </Space>
 
@@ -161,17 +154,38 @@ export default function ContentCMS() {
         cancelButtonProps={{ style: { borderColor: pal.border, color: pal.textDim } }} destroyOnHidden>
         <Form form={form} layout="vertical" size="large" autoComplete="off">
           <Form.Item name="type" label={<span style={labelStyle}>TYPE</span>}>
-            <Select options={[{ value: 'image', label: 'Image' }, { value: 'logo', label: 'Logo' }, { value: 'sponsor', label: 'Sponsor' }, { value: 'content', label: 'Content Block' }]} />
+            <Select options={[{ value: 'image', label: 'Image' }, { value: 'logo', label: 'Logo' }, { value: 'sponsor', label: 'Sponsor' }, { value: 'content', label: 'Content Block' }, { value: 'gallery', label: 'Gallery' }, { value: 'service', label: 'Service' }, { value: 'contact', label: 'Contact' }]} />
           </Form.Item>
-          <Form.Item name="title" label={<span style={labelStyle}>TITLE</span>}
-            validateStatus={formErrors.title ? 'error' : ''} help={formErrors.title && <span className="field-error">{formErrors.title}</span>}>
-            <Input placeholder="Hero Banner" style={{ background: pal.inputBg, borderColor: pal.border }} />
-          </Form.Item>
-          <Form.Item name="imageUrl" label={<span style={labelStyle}>IMAGE URL</span>}>
-            <Input placeholder="/src/assets/images/banner.png or https://..." style={{ background: pal.inputBg, borderColor: pal.border }} />
-          </Form.Item>
-          <Form.Item name="description" label={<span style={labelStyle}>DESCRIPTION</span>}>
-            <Input.TextArea rows={2} style={{ background: pal.inputBg, borderColor: pal.border }} />
+          
+          <Form.Item noStyle dependencies={['type']}>
+            {({ getFieldValue }) => {
+              const selectedType = getFieldValue('type');
+              return (
+                <>
+                  <Form.Item name="title" label={<span style={labelStyle}>{selectedType === 'contact' ? 'CONTACT TYPE (e.g. EMAIL, PHONE)' : 'TITLE'}</span>}
+                    validateStatus={formErrors.title ? 'error' : ''} help={formErrors.title && <span className="field-error">{formErrors.title}</span>}>
+                    <Input placeholder={selectedType === 'contact' ? 'e.g. EMAIL' : 'Title or Heading'} style={{ background: pal.inputBg, borderColor: pal.border }} />
+                  </Form.Item>
+                  <Form.Item name="imageUrl" label={<span style={labelStyle}>IMAGE URL</span>}>
+                    <Input placeholder="/src/assets/images/banner.png or https://..." style={{ background: pal.inputBg, borderColor: pal.border }} />
+                  </Form.Item>
+                  <Form.Item name="description" label={<span style={labelStyle}>{selectedType === 'contact' ? 'DETAILS (Address / Phone / Email)' : 'DESCRIPTION / SUB-HEADING'}</span>}>
+                    <Input.TextArea rows={selectedType === 'contact' ? 4 : 2} style={{ background: pal.inputBg, borderColor: pal.border }} />
+                  </Form.Item>
+
+                  {selectedType === 'service' && (
+                    <div style={{ display: 'flex', gap: 16 }}>
+                      <Form.Item name="buttonName" label={<span style={labelStyle}>BUTTON NAME</span>} style={{ flex: 1 }}>
+                        <Input placeholder="e.g. LEARN MORE" style={{ background: pal.inputBg, borderColor: pal.border }} />
+                      </Form.Item>
+                      <Form.Item name="link" label={<span style={labelStyle}>BUTTON LINK</span>} style={{ flex: 1 }}>
+                        <Input placeholder="#contact" style={{ background: pal.inputBg, borderColor: pal.border }} />
+                      </Form.Item>
+                    </div>
+                  )}
+                </>
+              );
+            }}
           </Form.Item>
           <div style={{ display: 'flex', gap: 16 }}>
             <Form.Item name="order" label={<span style={labelStyle}>ORDER</span>} style={{ flex: 1 }}>

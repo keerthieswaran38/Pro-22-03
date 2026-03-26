@@ -63,11 +63,11 @@ export default function DashboardPage() {
   const refreshCalculations = () => {
     if (!eventsMap || !participants || !coupons) return;
     
-    const ev = eventsMap;
+    const ev = eventsMap || {};
     const allEvents = Object.values(ev);
     const publicEvents = allEvents.filter((e: any) => !e.isDraft);
-    const parts = participants;
-    const allCoupons = coupons;
+    const parts = participants || [];
+    const allCoupons = coupons || [];
 
     const now = new Date();
     const sevenDaysAgo = new Date();
@@ -159,9 +159,9 @@ export default function DashboardPage() {
       }
       types[typeLabel] = (types[typeLabel] || 0) + 1;
     });
-    setPieData(Object.entries(types).map(([name, value]) => ({ name, value })));
+    setPieData(Object.entries(types || {}).map(([name, value]) => ({ name, value })));
 
-    const publicEventsWithSlugs = Object.entries(ev)
+    const publicEventsWithSlugs = Object.entries(ev || {})
       .filter(([_, data]) => !data.isDraft && !data.archived)
       .map(([slug, data]) => ({ ...data, slug }));
 
@@ -376,7 +376,7 @@ export default function DashboardPage() {
                     dataKey="value"
                     animationDuration={800}
                   >
-                    {pieData.map((_entry, index) => (
+                    {(pieData || []).map((_entry, index) => (
                       <Cell key={`cell-${index}`} fill={[COLOR_PRIMARY, COLOR_SUCCESS, COLOR_ACCENT, '#8b5cf6', '#3b82f6', '#f59e0b', '#ec4899'][index % 7]} stroke="none" />
                     ))}
                   </Pie>
@@ -387,8 +387,8 @@ export default function DashboardPage() {
               </ResponsiveContainer>
               <div style={{ marginTop: -10, width: '100%' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px 16px', paddingBottom: 10 }}>
-                  {pieData.map((entry, index) => {
-                    const total = pieData.reduce((a, b) => a + b.value, 0);
+                  {(pieData || []).map((entry, index) => {
+                    const total = (pieData || []).reduce((a, b) => a + b.value, 0);
                     const percent = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0.0';
                     return (
                       <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', fontWeight: 600 }}>
@@ -413,7 +413,7 @@ export default function DashboardPage() {
             style={{ height: '100%' }}
           >
             <div style={{ marginTop: 10 }}>
-              {topEvents.map((ev, i) => (
+              {(topEvents || []).map((ev, i) => (
                 <div key={i} style={{ marginBottom: 24 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text strong style={{ fontSize: '0.8rem', opacity: 0.9 }}>{ev.title}</Text>

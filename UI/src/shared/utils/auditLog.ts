@@ -50,6 +50,5 @@ export function performHealthCheck(): void {
 }
 
 export async function clearAuditLog(): Promise<void> {
-   // Clear log route can be added to server or we just pass a signal
-   console.log('Clearing local audit view sync...');
+   await fetch('/api/audit', { method: 'DELETE' });
 }

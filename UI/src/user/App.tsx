@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { useEvents, useCoupons, useLeaderboard } from '../shared/hooks/useSync';
+import { useEvents, useCoupons, useLeaderboard, useCMSContent } from '../shared/hooks/useSync';
 
 declare const gsap: any;
 declare const ScrollTrigger: any;
@@ -21,7 +21,7 @@ const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
 const RefundCancellationPage = lazy(() => import('./pages/RefundCancellationPage'));
 
 /* ─── USER LAYOUT ─── */
-function UserLayout({ children, loading, events, leaderboard }: { children: React.ReactNode, loading: boolean, events: any[], leaderboard: any }) {
+function UserLayout({ children, loading, events, leaderboard, contentData }: { children: React.ReactNode, loading: boolean, events: any[], leaderboard: any, contentData: any[] }) {
   const location = useLocation();
   const { pathname, hash } = location;
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
@@ -76,10 +76,18 @@ function UserLayout({ children, loading, events, leaderboard }: { children: Reac
     };
   }, []);
 
+  const [minSplashDone, setMinSplashDone] = useState(false);
+
+  // --- SPLASH SCREEN TIMER ---
+  useEffect(() => {
+    const timer = setTimeout(() => setMinSplashDone(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   // --- REPLICATION: PRELOADER EXIT & HERO ENTRANCE ---
   useEffect(() => {
-    if (!loading && !isIntroDone) {
-        // Skip complex landing animation if we are not on the home page
+    // Only proceed when data is loaded AND the 1.5s splash period has elapsed
+    if (!loading && minSplashDone && !isIntroDone) {
         if (pathname !== '/') {
             setIsIntroDone(true);
             return;
@@ -89,18 +97,19 @@ function UserLayout({ children, loading, events, leaderboard }: { children: Reac
             onComplete: () => setIsIntroDone(true)
         });
 
+        // Hard-synced 300ms fade-out immediately after the 1.5s mark
         tl.to('.preloader', {
-            yPercent: -100,
-            duration: 1.2,
-            ease: "power4.inOut",
-            delay: 1.0 // Extra beat for logo reveal
+            opacity: 0,
+            duration: 0.3,
+            ease: "power2.inOut",
+            onComplete: () => setHasInitiallyLoaded(true)
         })
         .to('.hero-title', {
             y: 0,
             duration: 1.2,
             stagger: 0.1,
             ease: "power4.out"
-        }, "-=0.6")
+        }, "-=0.1") // Snappy overlap with fade
         .to('.hero-footer', {
             opacity: 1,
             duration: 1,
@@ -113,22 +122,17 @@ function UserLayout({ children, loading, events, leaderboard }: { children: Reac
             ease: "power4.out"
         }, "-=1.2");
     }
-  }, [loading, isIntroDone, pathname]);
+  }, [loading, minSplashDone, isIntroDone, pathname]);
 
-  // Handle path changes (Scroll to top or specific hash)
+  // --- SCROLL TO TOP / HASH ON PATH CHANGE ---
   useEffect(() => {
-    // If there is a hash, we need to wait for the page to be "ready"
-    // especially on the landing page where pinning changes offsets.
     if (hash) {
       const id = hash.replace('#', '');
-      
       const performScroll = () => {
         const element = document.getElementById(id);
         if (element) {
-          // Refresh triggers so heights are accurate before measuring
           ScrollTrigger.refresh();
-          
-          const navbarHeight = 80; // Estimated height of fixed navbar
+          const navbarHeight = 80;
           const bodyRect = document.body.getBoundingClientRect().top;
           const elementRect = element.getBoundingClientRect().top;
           const elementPosition = elementRect - bodyRect;
@@ -141,14 +145,9 @@ function UserLayout({ children, loading, events, leaderboard }: { children: Reac
         }
       };
 
-      if (pathname === '/' && !isIntroDone) {
-        // Wait for intro to finish if we are on landing page
-        return; 
-      } else {
-        // Run with a slight delay to ensure dynamic content is rendered
-        const timer = setTimeout(performScroll, 500);
-        return () => clearTimeout(timer);
-      }
+      if (pathname === '/' && !isIntroDone) return; 
+      const timer = setTimeout(performScroll, 500);
+      return () => clearTimeout(timer);
     } else {
       window.scrollTo(0, 0);
     }
@@ -164,16 +163,9 @@ function UserLayout({ children, loading, events, leaderboard }: { children: Reac
 
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
-  // Mark as initially loaded when data is ready or intro completes
-  useEffect(() => {
-    if (!loading && isIntroDone) {
-      setHasInitiallyLoaded(true);
-    }
-  }, [loading, isIntroDone]);
-
   return (
     <div className="user-world-container" id="smooth-wrapper">
-      {!hasInitiallyLoaded && pathname === '/' && <GlobalPreloader />}
+      {!hasInitiallyLoaded && pathname === '/' && <GlobalPreloader content={contentData} />}
       <LeaderboardOverlay 
         isOpen={isLeaderboardOpen} 
         onClose={() => setIsLeaderboardOpen(false)} 
@@ -181,12 +173,12 @@ function UserLayout({ children, loading, events, leaderboard }: { children: Reac
         leaderboardData={leaderboard || {}}
       />
       
-      <UserNavbar onOpenLeaderboard={() => setIsLeaderboardOpen(true)} />
+      <UserNavbar onOpenLeaderboard={() => setIsLeaderboardOpen(true)} content={contentData} />
       
       <div id="smooth-content">
         {children}
       </div>
-      <UserFooter />
+      <UserFooter content={contentData} />
     </div>
   );
 }
@@ -195,9 +187,11 @@ export default function UserApp() {
   const { data: events = {}, isLoading: evLoading } = useEvents();
   const { data: coupons = [], isLoading: cpLoading } = useCoupons();
   const { data: leaderboard = {}, isLoading: lbLoading } = useLeaderboard();
+  const { data: rawContent = [], isLoading: contentLoading } = useCMSContent();
+  const contentData = rawContent.filter((c: any) => c.active).sort((a: any, b: any) => a.order - b.order);
 
   // Show preloader while initial data is fetching
-  const isInitialLoading = evLoading || cpLoading || lbLoading;
+  const isInitialLoading = evLoading || cpLoading || lbLoading || contentLoading;
 
   // Filter events: only show events that are Open (registrationOpen) and not drafts
   const activeEvents = Object.entries(events)
@@ -210,17 +204,17 @@ export default function UserApp() {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <UserLayout loading={isInitialLoading} events={activeEventsList} leaderboard={leaderboard}>
+      <UserLayout loading={isInitialLoading} events={activeEventsList} leaderboard={leaderboard} contentData={contentData}>
         <Suspense fallback={<div className="suspense-loader" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#030712', color: '#fff' }}>LOADING...</div>}>
           <Routes>
-            <Route path="/" element={<LandingPage events={activeEventsList} leaderboard={leaderboard} />} />
+            <Route path="/" element={<LandingPage events={activeEventsList} leaderboard={leaderboard} content={contentData} />} />
             <Route path="/events/:slug" element={<EventDetailsPage events={events} coupons={coupons} />} />
             <Route path="/register/:slug" element={<RegistrationPage events={events} />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/blog/:id" element={<BlogDetailsPage />} />
             <Route path="/terms-conditions" element={<TermsConditionsPage />} />
             <Route path="/refund-cancellation" element={<RefundCancellationPage />} />
-            <Route path="*" element={<LandingPage events={activeEventsList} leaderboard={leaderboard} />} />
+            <Route path="*" element={<LandingPage events={activeEventsList} leaderboard={leaderboard} content={contentData} />} />
           </Routes>
         </Suspense>
       </UserLayout>

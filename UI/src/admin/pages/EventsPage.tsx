@@ -147,7 +147,7 @@ export default function EventsPage() {
 
   const [showDrafts, setShowDrafts] = useState(false);
 
-  const activeEvents = Object.entries(eventsObj).filter(([, ev]) => showDrafts ? true : !ev.isDraft);
+  const activeEvents = Object.entries(eventsObj || {}).filter(([, ev]) => showDrafts ? true : !ev.isDraft);
 
   const dataSource = activeEvents
     .filter(([slug, ev]) => {
@@ -158,7 +158,7 @@ export default function EventsPage() {
       const venue = (ev.venue || '').toLowerCase();
       return title.includes(q) || tag.includes(q) || venue.includes(q) || slug.toLowerCase().includes(q);
     })
-    .map(([slug, ev]) => ({ key: slug, slug, ...ev }));
+    .map(([slug, ev]) => ({ key: slug, ...ev }));
 
   const openAdd = () => {
     setEditingSlug(null);
@@ -224,9 +224,9 @@ export default function EventsPage() {
     }
 
     let cCats: {name: string, price: number}[] = [];
-    if (ev.categories && ev.categories.length > 0) {
+    if (ev.categories && (ev.categories || []).length > 0) {
       // detect if these are fully custom
-      cCats = ev.categories.map(c => ({ name: c.name, price: parseInt(c.price.replace(/\D/g, '') || '0', 10) }));
+      cCats = (ev.categories || []).map(c => ({ name: c.name, price: parseInt(c.price.replace(/\D/g, '') || '0', 10) }));
     }
     
     setCustomCats(cCats);
@@ -283,7 +283,7 @@ export default function EventsPage() {
     
     setFormErrors({});
 
-    const cats = customCats.length > 0 ? customCats.map(c => ({ name: c.name, price: `₹${c.price}`, details: [] })) : [];
+    const cats = (customCats || []).length > 0 ? (customCats || []).map(c => ({ name: c.name, price: `₹${c.price}`, details: [] })) : [];
 
     const val = result.success ? result.data : payload; // If forced auto-draft, preserve raw
     const finalDraftState = forceDraft ? true : (val.isDraft || false);
@@ -654,9 +654,9 @@ export default function EventsPage() {
                   </Button>
                 </Space>
                 
-                {customCats.length > 0 && (
+                {(customCats || []).length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-                    {customCats.map((cat, idx) => (
+                    {(customCats || []).map((cat, idx) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: pal.card, borderRadius: 6, border: `1px solid ${pal.border}` }}>
                         <span style={{ fontWeight: 600, color: pal.text }}>{cat.name} <Tag color="green" style={{ marginLeft: 8 }}>₹{cat.price}</Tag></span>
                         <Button danger size="small" icon={<DeleteOutlined />} onClick={() => { const newC = [...customCats]; newC.splice(idx,1); setCustomCats(newC); }} />
@@ -709,7 +709,7 @@ export default function EventsPage() {
         centered
       >
         {selectedEvent && (() => {
-          const applicableCoupons = allCoupons.filter((c: Coupon) => c.active && (c.eventId === selectedEvent.slug || c.eventId === 'ALL'));
+          const applicableCoupons = (allCoupons || []).filter((c: Coupon) => c.active && (c.eventId === selectedEvent.slug || c.eventId === 'ALL'));
           
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
@@ -802,7 +802,7 @@ export default function EventsPage() {
                 </Title>
                 {selectedEvent.categories && selectedEvent.categories.length > 0 ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
-                    {selectedEvent.categories.map((cat: any, i: number) => (
+                    {(selectedEvent.categories || []).map((cat: any, i: number) => (
                       <div key={i} style={{ padding: '12px 16px', background: pal.card, borderRadius: 10, border: `1px solid ${pal.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontWeight: 700 }}>{cat.name}</span>
                         <Tag color="green" style={{ border: 'none', fontWeight: 900 }}>{cat.price}</Tag>
@@ -850,7 +850,7 @@ export default function EventsPage() {
                 
                 {applicableCoupons.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {applicableCoupons.map((c: Coupon) => (
+                    {(applicableCoupons || []).map((c: Coupon) => (
                       <div key={c.id} style={{ 
                         background: 'rgba(255,107,0,0.03)', 
                         border: `1px solid ${pal.border}`, 

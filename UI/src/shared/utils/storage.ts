@@ -23,6 +23,12 @@ export interface GagnerEvent {
   categories: EventCategory[];
   deliverables: string[];
   registrationOpen?: boolean;
+  registrationStart?: string;
+  registrationEnd?: string;
+  rules?: string;
+  prizes_desc?: string;
+  contact_email?: string;
+  contact_phone?: string;
   archived?: boolean;
   isDraft?: boolean;
   status?: 'Open' | 'Closed' | 'Sold Out' | 'Coming Soon';
@@ -67,10 +73,13 @@ export interface Coupon {
 export interface ContentBlock {
   _id?: string;
   id: string;
-  type: 'image' | 'logo' | 'sponsor' | 'content';
+  type: 'image' | 'logo' | 'sponsor' | 'content' | 'gallery' | 'service' | 'contact';
   title: string;
   imageUrl: string;
   description: string;
+  link?: string;
+  buttonName?: string;
+  metadata?: any;
   order: number;
   active: boolean;
 }
@@ -93,8 +102,28 @@ const api = {
     });
     if (!res.ok) throw new Error(`POST ${url} failed`);
     return await res.json();
+  },
+  del: async (url: string) => {
+    const res = await fetch(url, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`DELETE ${url} failed`);
+    return await res.json();
   }
 };
+
+// ========================
+// CLOUDINARY IMAGE UPLOAD
+// ========================
+export async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('image', file);
+  const res = await fetch('/api/upload', { method: 'POST', body: formData });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+    throw new Error(err.error || 'Upload failed');
+  }
+  const data = await res.json();
+  return data.url;
+}
 
 export async function getEvents(): Promise<Record<string, GagnerEvent>> {
   return await api.get('/api/events');
@@ -114,10 +143,12 @@ export async function saveParticipant(p: Participant): Promise<void> {
 }
 
 export async function saveParticipants(parts: Participant[]): Promise<void> {
-  // Simple bulk — can be expanded to proper batch route later
-  for (const p of parts) {
-    await saveParticipant(p);
-  }
+  await api.post('/api/participants-batch', parts);
+}
+
+export interface LeaderboardEntry {
+  name: string;
+  time: string | null;
 }
 
 export async function getCoupons(): Promise<Coupon[]> {
@@ -144,4 +175,39 @@ export async function getLeaderboard(): Promise<Record<string, any>> {
 
 export async function saveLeaderboard(eventSlug: string, winners: any[]): Promise<void> {
   await api.post('/api/leaderboard', { eventSlug, winners });
+}
+
+export async function deleteLeaderboard(eventSlug: string): Promise<void> {
+  await api.del(`/api/leaderboard/${eventSlug}`);
+}
+
+// ========================
+// DMS (Content & Asset) Helpers
+// ========================
+
+export async function getDMSItems(type: string): Promise<ContentBlock[]> {
+  const data = await api.get(`/api/dms/${type}`);
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createDMSItem(type: string, item: Partial<ContentBlock>): Promise<ContentBlock> {
+  return await api.post(`/api/dms/${type}`, item);
+}
+
+export async function updateDMSItem(type: string, id: string, item: Partial<ContentBlock>): Promise<ContentBlock> {
+  const res = await fetch(`/api/dms/${type}/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(item)
+  });
+  if (!res.ok) throw new Error(`PUT /api/dms/${type}/${id} failed`);
+  return await res.json();
+}
+
+export async function deleteDMSItem(type: string, id: string): Promise<void> {
+  await api.del(`/api/dms/${type}/${id}`);
+}
+
+export async function upsertLogo(imageUrl: string, title: string = 'Brand Logo'): Promise<ContentBlock> {
+  return await api.post('/api/dms/logo/upsert', { imageUrl, title });
 }

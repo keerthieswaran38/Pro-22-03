@@ -71,14 +71,14 @@ export default function EventDetailsPage({ events, coupons }: { events: any, cou
               <div className="ed-section">
                   <h2 className="ed-section-title">CATEGORIES & <span className="green" style={{marginLeft: '8px'}}>PRIZES</span></h2>
                   <div className="ed-categories">
-                      {event.categories?.map((cat: any, idx: number) => (
+                      {(event?.categories || []).map((cat: any, idx: number) => (
                           <div key={idx} className="ed-category-card">
                               <div className="ed-cat-header">
                                   <div className="ed-cat-title">{cat.name}</div>
                                   <div className="ed-cat-price">{cat.price}</div>
                               </div>
                               <div className="ed-cat-details">
-                                  {cat.details?.map((d: string, i: number) => (
+                                  {(cat.details || []).map((d: string, i: number) => (
                                       <div key={i} className="ed-detail-row"><CheckIcon /> {d}</div>
                                   ))}
                               </div>
@@ -131,7 +131,7 @@ export default function EventDetailsPage({ events, coupons }: { events: any, cou
                       <div className="ed-input-wrapper">
                           <select className="ed-input" required defaultValue="">
                               <option value="" disabled></option>
-                              {event.categories?.map((cat: any, idx: number) => (
+                              {(event?.categories || []).map((cat: any, idx: number) => (
                                   <option key={idx} value={cat.name}>{cat.name} - {cat.price}</option>
                               ))}
                           </select>

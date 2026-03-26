@@ -1,0 +1,1051 @@
+/* ============================================================
+   RESPONSIVE FIX — Master Override for All Screen Sizes
+   Applied AFTER user.css and fluid-hero.css
+   ============================================================ */
+
+/* === GLOBAL SAFETY === */
+html, body {
+    width: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+}
+
+.landing-page-mad,
+.user-world-container,
+#smooth-wrapper,
+#smooth-content {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* === FIX: Massive text overflow in About section === */
+.massive-text-wrap {
+    width: 100%;
+    overflow: visible;
+}
+
+.massive-text {
+    max-width: 100%;
+}
+
+/* ============================================================
+   BREAKPOINT: 1440px — Large Laptop / Small Desktop
+   ============================================================ */
+@media (max-width: 1440px) {
+    /* Navbar tighten */
+    .nav-minimal {
+        padding: 1.2rem 3rem;
+    }
+    .nav-minimal.nav-scrolled {
+        padding: 0.8rem 3rem;
+    }
+    .nav-links {
+        gap: 2rem;
+        font-size: 0.8rem;
+    }
+
+    /* Hero */
+    .hero-brutal {
+        padding: 100px 3rem 3rem;
+        gap: 3rem;
+    }
+    .hero-title {
+        font-size: clamp(2.5rem, 5.5vw, 6rem) !important;
+        line-height: 1.05 !important;
+        letter-spacing: -1px;
+    }
+
+    /* About — scale down massive text to fit within viewport */
+    .about-massive {
+        padding: 6rem 3rem 3rem;
+        overflow: visible !important;
+    }
+    .massive-text-wrap {
+        width: 100%;
+        overflow: visible;
+    }
+    .massive-text {
+        font-size: clamp(2rem, 6.5vw, 6.5rem) !important; /* Scaled down for 14-char "UNCOMPROMISING" */
+        width: auto !important;
+        max-width: 100%;
+        white-space: normal !important;
+        letter-spacing: -1px;
+        overflow: visible !important;
+        line-height: 1.15 !important;
+    }
+    .massive-text.outline {
+        padding-left: 0 !important;
+        margin-left: 0;
+    }
+
+    /* Section headings */
+    .heading-unique {
+        font-size: clamp(2.5rem, 8vw, 6rem) !important;
+    }
+
+    /* Stats */
+    .stat-number {
+        font-size: 3.5rem !important;
+    }
+    .stat-plus {
+        font-size: 1.8rem !important;
+    }
+
+    /* Services */
+    .service-slide {
+        flex: 0 0 380px;
+        height: 480px;
+    }
+
+    /* Events */
+    .esi-content h3 {
+        font-size: clamp(2rem, 4vw, 3.5rem) !important;
+    }
+    .esi-img {
+        height: 400px;
+    }
+}
+
+/* ============================================================
+   BREAKPOINT: 1280px — Small Laptop (e.g. 1366x768 @ 100%)
+   ============================================================ */
+@media (max-width: 1280px) {
+    .nav-minimal {
+        padding: 1rem 2.5rem;
+    }
+    .nav-minimal.nav-scrolled {
+        padding: 0.8rem 2.5rem;
+    }
+    .nav-links {
+        gap: 1.5rem;
+        font-size: 0.75rem;
+    }
+    .btn-neon {
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+    }
+
+    /* Hero */
+    .hero-brutal {
+        padding: 90px 2.5rem 2.5rem;
+        gap: 2.5rem;
+    }
+    .hero-title {
+        font-size: clamp(2rem, 5vw, 5rem) !important;
+    }
+
+    /* About */
+    .about-massive {
+        padding: 5rem 2.5rem 3rem;
+        gap: 3rem;
+        overflow: visible !important;
+    }
+    .massive-text {
+        font-size: clamp(1.8rem, 6vw, 5vw) !important;
+        width: auto !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        line-height: 1.15 !important;
+    }
+    .massive-text.outline {
+        padding-left: 0 !important;
+        margin-left: 0;
+    }
+
+    /* Section headings — critical fix for overlap */
+    .heading-unique {
+        font-size: clamp(2rem, 7vw, 4.5rem) !important;
+    }
+    .section-heading-wrap {
+        padding: 0 2.5rem !important;
+    }
+
+    /* Stats */
+    .stats-section {
+        padding: 3rem 2.5rem;
+    }
+    .stat-number {
+        font-size: 3rem !important;
+    }
+    .stat-plus {
+        font-size: 1.5rem !important;
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+    }
+
+    /* Services */
+    .service-slide {
+        flex: 0 0 340px;
+        height: 440px;
+    }
+    .services-track-new {
+        gap: 3rem;
+        padding-left: 2.5rem;
+    }
+
+    /* Events */
+    .events-stack {
+        padding: 0 2.5rem;
+        gap: 4rem;
+    }
+    .event-stack-item {
+        gap: 3rem;
+    }
+    .esi-img {
+        height: 350px;
+    }
+    .esi-content h3 {
+        font-size: clamp(1.8rem, 3.5vw, 3rem) !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    /* Gallery */
+    .gallery-clean-section {
+        padding: 6rem 2.5rem !important;
+    }
+
+    /* Blogs */
+    .blogs-grid {
+        padding: 0 2.5rem;
+        gap: 2rem;
+    }
+
+    /* Contact */
+    .contact-section {
+        padding: 6rem 2.5rem;
+    }
+
+    /* Footer */
+    .footer-full {
+        padding: 4rem 2.5rem 0;
+    }
+    .footer-top {
+        gap: 2rem;
+    }
+    .footer-brand {
+        font-size: 1.5rem;
+    }
+
+    /* Leaderboard overlay */
+    .lb-inner {
+        padding: 3rem 2rem;
+    }
+
+    /* Event Details Page */
+    .ed-hero {
+        padding: 0 2.5rem 3rem 2.5rem;
+    }
+    .ed-main {
+        padding: 4rem 2.5rem;
+    }
+    .ed-timer-wrapper {
+        min-width: 300px;
+    }
+    .ed-time-value {
+        font-size: 2.2rem;
+    }
+}
+
+/* ============================================================
+   BREAKPOINT: 1024px — Tablet Landscape / Small Laptop
+   ============================================================ */
+@media (max-width: 1024px) {
+    /* Navbar */
+    .nav-minimal {
+        padding: 1rem 2rem;
+    }
+    .nav-links {
+        gap: 1.2rem;
+        font-size: 0.7rem;
+    }
+
+    /* Hero — switch to single column */
+    .hero-brutal {
+        grid-template-columns: 1fr !important;
+        flex-direction: column;
+        padding: 90px 2rem 2rem;
+        gap: 2rem;
+        height: auto;
+        min-height: auto;
+    }
+    .hero-content {
+        align-items: center;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .hero-visual {
+        width: 100%;
+        height: 45vh;
+        min-height: 300px;
+        flex: none;
+    }
+    .hero-title {
+        font-size: clamp(2rem, 7vw, 3.5rem) !important;
+        text-align: center;
+    }
+    .hero-title.indent {
+        padding-left: 0;
+        text-align: center;
+    }
+    .hero-footer {
+        justify-content: center;
+        text-align: center;
+    }
+
+    /* About */
+    .about-massive {
+        padding: 4rem 2rem;
+        gap: 2rem;
+        overflow: visible !important;
+    }
+    .massive-text {
+        font-size: clamp(1.5rem, 5.5vw, 4vw) !important;
+        width: auto !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        line-height: 1.15 !important;
+    }
+    .massive-text.outline {
+        padding-left: 0 !important;
+        margin-left: 0;
+    }
+
+    /* Stats */
+    .stats-section {
+        padding: 3rem 2rem;
+    }
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1.5rem;
+    }
+    .stat-number {
+        font-size: 2.5rem !important;
+    }
+    .stat-plus {
+        font-size: 1.2rem !important;
+    }
+
+    /* Section Headings */
+    .section-heading-wrap {
+        padding: 0 2rem !important;
+    }
+    .heading-unique {
+        font-size: clamp(1.8rem, 7vw, 3.5rem) !important;
+    }
+
+    /* Services */
+    .services-symmetric-grid {
+        grid-template-columns: 1fr;
+        padding: 0 2rem;
+    }
+    .services-track-new {
+        gap: 2rem;
+        padding-left: 2rem;
+    }
+    .service-slide {
+        flex: 0 0 300px;
+        height: 400px;
+    }
+
+    /* Events */
+    .events-vertical-unique {
+        padding: 4rem 0;
+    }
+    .events-stack {
+        padding: 0 2rem;
+        gap: 4rem;
+    }
+    .event-stack-item {
+        grid-template-columns: 1fr !important;
+        gap: 2rem;
+        padding: 1.5rem;
+        text-align: center;
+        direction: ltr !important;
+    }
+    .event-stack-item:nth-child(even) {
+        direction: ltr !important;
+    }
+    .event-stack-item .esi-content {
+        text-align: center !important;
+        direction: ltr !important;
+    }
+    .esi-img {
+        height: 280px;
+    }
+    .esi-content h3 {
+        font-size: clamp(1.6rem, 4vw, 2.5rem) !important;
+        margin-bottom: 1.2rem !important;
+    }
+    .esi-meta {
+        justify-content: center;
+    }
+    .esi-bottom {
+        justify-content: center;
+    }
+
+    /* Gallery */
+    .gallery-clean-section {
+        padding: 4rem 2rem !important;
+    }
+
+    /* Blogs */
+    .blogs-section-brutal {
+        padding: 5rem 0;
+    }
+    .blogs-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        padding: 0 2rem;
+    }
+
+    /* Footer */
+    .footer-full {
+        padding: 3rem 2rem 0;
+    }
+    .footer-top {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 2rem;
+    }
+
+    /* Contact */
+    .contact-section {
+        padding: 4rem 2rem;
+    }
+
+    /* Leaderboard */
+    .lb-events-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Detail body */
+    .detail-body {
+        grid-template-columns: 1fr;
+    }
+
+    /* Event Details Page */
+    .ed-hero-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .ed-timer-wrapper {
+        align-self: flex-start;
+        min-width: auto;
+        width: 100%;
+    }
+    .ed-main {
+        grid-template-columns: 1fr;
+        padding: 3rem 2rem;
+    }
+    .ed-form-panel {
+        position: static;
+    }
+
+    /* Partners/Sponsors */
+    #sponsors {
+        padding: 4rem 0 !important;
+    }
+}
+
+/* ============================================================
+   BREAKPOINT: 768px — Mobile / Tablet Portrait
+   ============================================================ */
+@media (max-width: 768px) {
+    /* Navbar */
+    .nav-links {
+        display: none !important;
+    }
+    .nav-desktop-cta {
+        display: none !important;
+    }
+    .hamburger-btn {
+        display: flex !important;
+    }
+    .nav-minimal {
+        padding: 1rem 1.5rem;
+    }
+
+    /* Hero */
+    .hero-brutal {
+        padding: 80px 1.5rem 2rem;
+        min-height: auto;
+        height: auto;
+        flex-direction: column;
+    }
+    .hero-content {
+        flex: none;
+        text-align: center;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    .hero-visual {
+        height: 35vh;
+        width: 100%;
+        flex: none;
+        min-height: 200px;
+    }
+    .hero-visual .hero-slide {
+        /* Layout handled by fluid-hero.css blur-bg system */
+    }
+    .hero-footer {
+        display: none;
+    }
+    .hero-title {
+        font-size: clamp(1.8rem, 9vw, 3rem) !important;
+        letter-spacing: -1px;
+        text-align: center;
+        line-height: 1.1 !important;
+    }
+    .hero-title.indent {
+        padding-left: 0;
+    }
+
+    /* About */
+    .about-massive {
+        padding: 2.5rem 1.5rem;
+        gap: 1rem;
+        overflow: visible !important;
+    }
+    .massive-text {
+        font-size: clamp(1.4rem, 6vw, 2.5rem) !important;
+        width: auto !important;
+        white-space: normal !important;
+        text-align: center;
+        overflow: visible !important;
+        line-height: 1.15 !important;
+    }
+    .massive-text.outline {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+        text-align: center;
+    }
+    .about-desc {
+        text-align: center;
+        margin-top: 0.5rem;
+    }
+    .about-desc p {
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    /* Stats */
+    .stats-section {
+        padding: 2rem 1.5rem;
+    }
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.8rem;
+    }
+    .stat-item {
+        padding: 0.8rem 0.5rem;
+    }
+    .stat-item::after {
+        display: none !important;
+    }
+    .stat-number {
+        font-size: 1.8rem !important;
+    }
+    .stat-plus {
+        font-size: 1rem !important;
+    }
+    .stat-label {
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+        margin-top: 0.5rem;
+    }
+
+    /* Section Headings */
+    .section-heading-wrap {
+        padding: 0 1.5rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    .heading-unique {
+        font-size: clamp(1.5rem, 8vw, 3rem) !important;
+        flex-wrap: wrap;
+        line-height: 1.1;
+    }
+
+    /* Services */
+    .services-horizontal-unique {
+        min-height: auto;
+    }
+    .services-pin-content {
+        height: auto !important;
+        min-height: auto;
+        padding: 2rem 0;
+    }
+    .services-grid-unique {
+        padding: 3rem 0;
+    }
+    .services-track-new {
+        gap: 1.5rem;
+        padding-left: 1.5rem;
+    }
+    .service-slide {
+        flex: 0 0 260px;
+        height: 350px;
+    }
+    .service-slide:hover {
+        transform: none;
+    }
+    .sc-num {
+        font-size: 2.5rem;
+        top: 1rem;
+        left: 1rem;
+    }
+    .ss-info {
+        padding: 1.5rem;
+    }
+    .ss-info h3 {
+        font-size: 1.2rem;
+    }
+    .ss-info p {
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Events */
+    .events-vertical-unique {
+        padding: 2.5rem 0;
+    }
+    .events-stack {
+        padding: 0 1rem !important;
+        gap: 2.5rem;
+    }
+    .event-stack-item {
+        padding: 1rem;
+        border-radius: 16px;
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem;
+        direction: ltr !important;
+    }
+    .esi-img {
+        height: 220px;
+        border-radius: 12px;
+    }
+    .esi-content {
+        padding: 0.5rem 0;
+    }
+    .esi-content h3 {
+        font-size: 1.5rem !important;
+        margin-bottom: 1rem !important;
+        letter-spacing: -0.5px !important;
+    }
+    .esi-meta {
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+    .esi-bottom {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding-top: 1rem;
+    }
+    .ec-countdown {
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .cd-item {
+        min-width: 50px;
+        padding: 0.4rem 0.8rem;
+    }
+    .cd-item span {
+        font-size: 1.2rem;
+    }
+    .esi-actions {
+        gap: 1rem;
+        width: 100%;
+        justify-content: center;
+    }
+    .esi-actions .btn-neon {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.8rem;
+    }
+    .btn-details-static {
+        font-size: 0.8rem;
+    }
+
+    /* Gallery */
+    .gallery-clean-section {
+        padding: 3rem 1.5rem !important;
+    }
+    .gallery-bg-text {
+        font-size: 20vw !important;
+    }
+
+    /* Blogs */
+    .blogs-section-brutal {
+        padding: 3rem 0;
+    }
+    .blogs-grid {
+        grid-template-columns: 1fr !important;
+        padding: 0 1.5rem;
+    }
+
+    /* Contact */
+    .contact-section {
+        padding: 3rem 1.5rem !important;
+    }
+    .contact-wrapper {
+        padding: 0 !important;
+    }
+    .contact-header h2 {
+        font-size: 2rem;
+    }
+    .form-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .form-group {
+        width: 100%;
+    }
+
+    /* Partners */
+    #sponsors {
+        padding: 3rem 0 !important;
+    }
+    #sponsors .section-heading-wrap {
+        padding: 0 1.5rem !important;
+    }
+
+    /* Footer */
+    .footer-full {
+        padding: 3rem 1.5rem 1rem;
+    }
+    .footer-top {
+        grid-template-columns: 1fr !important;
+        gap: 2rem;
+        text-align: center;
+    }
+    .footer-brand {
+        margin: 0 auto;
+    }
+    .social-links {
+        justify-content: center;
+    }
+    .footer-contact-info .contact-detail {
+        justify-content: center;
+        text-align: center;
+    }
+    .footer-bottom-bar {
+        padding: 1.5rem 0;
+        font-size: 0.75rem;
+    }
+
+    /* Leaderboard */
+    .lb-events-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .lb-title {
+        font-size: clamp(2rem, 8vw, 4rem);
+    }
+    .lb-event-card {
+        height: 250px;
+    }
+    .lb-close {
+        top: 1rem;
+        right: 1.5rem;
+        width: 45px;
+        height: 45px;
+    }
+
+    /* Event Details Page */
+    .ed-hero {
+        height: auto;
+        min-height: 60vh;
+        padding: 0 1.5rem 3rem 1.5rem;
+    }
+    .ed-hero-content {
+        padding: 100px 0 0;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .ed-title {
+        font-size: clamp(2rem, 8vw, 3.5rem) !important;
+        text-align: center;
+    }
+    .ed-badge {
+        margin: 0 auto 1rem;
+    }
+    .ed-timer-wrapper {
+        align-self: center;
+        min-width: auto;
+        width: 100%;
+    }
+    .ed-timer-blocks {
+        gap: 0.5rem;
+    }
+    .ed-time-value {
+        font-size: 1.5rem;
+    }
+    .ed-main {
+        padding: 2rem 1.5rem;
+        gap: 2rem;
+        grid-template-columns: 1fr;
+    }
+    .ed-meta-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .ed-section-title {
+        font-size: 1.5rem;
+    }
+    .ed-form-panel {
+        padding: 2rem 1.5rem;
+    }
+
+    /* Privacy/Terms Pages */
+    .pp-hero {
+        height: 50vh;
+    }
+    .pp-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .pp-item {
+        padding: 2rem;
+    }
+
+    /* Detail overlay */
+    .detail-body {
+        padding: 3rem 1.5rem;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    .detail-hero {
+        height: 45vh;
+    }
+    .detail-hero-text {
+        left: 1.5rem;
+        right: 1.5rem;
+        bottom: 2rem;
+    }
+    .detail-hero-text h1 {
+        font-size: 2rem;
+    }
+    .detail-close {
+        top: 1rem;
+        right: 1.5rem;
+    }
+
+    /* Custom cursor: hide on mobile */
+    .cursor, .cursor-follower {
+        display: none !important;
+    }
+    * {
+        cursor: auto !important;
+    }
+
+    /* Registration page */
+    .event-title-extreme {
+        font-size: 2.5rem !important;
+        text-align: center;
+    }
+    .registration-content-wrapper {
+        padding: 0 1rem !important;
+        gap: 2rem !important;
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Background text overflow prevention */
+    .bg-text-watermark, .section-bg-text, .gallery-bg-text {
+        font-size: 3rem !important;
+        opacity: 0.02;
+    }
+}
+
+/* ============================================================
+   BREAKPOINT: 480px — Small Mobile
+   ============================================================ */
+@media (max-width: 480px) {
+    .nav-minimal {
+        padding: 1rem 1rem;
+    }
+
+    .hero-brutal {
+        padding: 70px 1rem 1.5rem;
+    }
+    .hero-title {
+        font-size: clamp(1.5rem, 10vw, 2.5rem) !important;
+    }
+    .hero-visual {
+        height: 30vh;
+        min-height: 180px;
+    }
+    .hero-visual .hero-slide {
+        /* Layout handled by fluid-hero.css blur-bg system */
+    }
+
+    /* About */
+    .about-massive {
+        padding: 2rem 1rem;
+        gap: 0.8rem;
+        overflow: visible !important;
+    }
+    .massive-text {
+        font-size: clamp(1.2rem, 6vw, 2rem) !important;
+        width: 100% !important;
+        white-space: normal !important;
+    }
+    .about-desc p {
+        font-size: 0.9rem;
+    }
+
+    /* Headings */
+    .heading-unique {
+        font-size: clamp(1.3rem, 8vw, 2rem) !important;
+    }
+    .section-heading-wrap {
+        padding: 0 1rem !important;
+    }
+
+    /* Stats */
+    .stats-section {
+        padding: 2rem 1rem;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+    .stat-item {
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+    .stat-number {
+        font-size: 2rem !important;
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+    }
+
+    /* Services — stack vertically on very small */
+    .services-pin-content {
+        padding: 2rem 0;
+        height: auto !important;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .services-track-new {
+        display: flex;
+        flex-direction: column !important;
+        width: 100% !important;
+        padding: 0 1rem !important;
+        gap: 1.5rem;
+        align-items: center;
+        transform: none !important;
+    }
+    .service-slide {
+        flex: none !important;
+        width: 100% !important;
+        height: 350px;
+        max-width: 400px;
+        margin: 0 auto;
+        box-sizing: border-box;
+    }
+    .ss-info h3 {
+        font-size: 1.5rem;
+    }
+    .sc-num {
+        font-size: 2rem;
+    }
+
+    /* Events */
+    .events-stack {
+        padding: 0 1rem !important;
+        gap: 3rem;
+    }
+    .esi-img {
+        height: 200px;
+    }
+    .esi-content h3 {
+        font-size: 1.3rem !important;
+    }
+
+    /* Gallery */
+    .gallery-clean-section {
+        padding: 3rem 1rem !important;
+    }
+
+    /* Contact */
+    .contact-form {
+        padding: 0 !important;
+    }
+
+    /* Footer */
+    .footer-bottom-bar {
+        font-size: 0.65rem;
+        text-align: center;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        line-height: 1.6;
+    }
+
+    /* Mobile menu full width */
+    .mobile-menu {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Registration form */
+    .form-glass-card {
+        padding: 1.5rem !important;
+    }
+    .tc-selector {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    /* Kill background texts causing overflow */
+    .bg-text-watermark, .section-bg-text, .gallery-bg-text {
+        display: none !important;
+    }
+
+    /* Event Details Page */
+    .ed-hero-content {
+        padding: 80px 0 2rem;
+    }
+    .ed-title {
+        font-size: 1.8rem !important;
+    }
+    .ed-main {
+        padding: 1.5rem 1rem;
+    }
+    .ed-colon {
+        font-size: 1rem;
+    }
+}
+
+/* ============================================================
+   BREAKPOINT: 360px — Ultra Small Mobile
+   ============================================================ */
+@media (max-width: 360px) {
+    .hero-title {
+        font-size: 1.3rem !important;
+    }
+    .massive-text {
+        font-size: clamp(1rem, 6vw, 1.8rem) !important;
+        width: 100% !important;
+    }
+    .heading-unique {
+        font-size: 1.2rem !important;
+    }
+    .stat-number {
+        font-size: 1.8rem !important;
+    }
+    .service-slide {
+        height: 300px;
+    }
+    .esi-img {
+        height: 180px;
+    }
+    .esi-content h3 {
+        font-size: 1.2rem !important;
+    }
+}

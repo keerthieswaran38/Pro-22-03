@@ -2,7 +2,7 @@ import React from 'react';
 import { Layout, Menu} from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
-  DashboardOutlined, CalendarOutlined, FileImageOutlined,
+  DashboardOutlined, CalendarOutlined, DatabaseOutlined,
   TeamOutlined, GiftOutlined, AuditOutlined, TrophyOutlined
 } from '@ant-design/icons';
 import { BRAND_GRADIENT } from '../../shared/theme';
@@ -24,7 +24,7 @@ export default function AdminSidebar({ collapsed, setCollapsed, selectedKey, pal
     { key: 'dashboard',   icon: <DashboardOutlined />,   label: 'Dashboard' },
     { key: 'events',      icon: <CalendarOutlined />,    label: 'Events' },
     { key: 'leaderboard', icon: <TrophyOutlined />,      label: 'Leaderboard' },
-    { key: 'content',     icon: <FileImageOutlined />,   label: 'Content CMS' },
+    { key: 'dms',         icon: <DatabaseOutlined />,    label: 'Content & Asset DMS' },
     { key: 'participants',icon: <TeamOutlined />,        label: 'Participants' },
     { key: 'coupons',     icon: <GiftOutlined />,        label: 'Coupons' },
     { key: 'audit',       icon: <AuditOutlined />,       label: 'Audit Log' },

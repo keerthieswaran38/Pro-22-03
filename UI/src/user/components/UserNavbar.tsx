@@ -6,7 +6,12 @@ import logo from '../../assets/images/logo.png';
 declare const gsap: any;
 declare const ScrollTrigger: any;
 
-export default function UserNavbar({ onOpenLeaderboard }: { onOpenLeaderboard: () => void }) {
+interface UserNavbarProps {
+  onOpenLeaderboard: () => void;
+  content?: any[];
+}
+
+const UserNavbar: React.FC<UserNavbarProps> = ({ onOpenLeaderboard, content = [] }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -35,7 +40,7 @@ export default function UserNavbar({ onOpenLeaderboard }: { onOpenLeaderboard: (
     <>
       <nav className={`nav-minimal ${isScrolled ? 'nav-scrolled' : ''}`} id="main-nav">
         <Link to="/" className="nav-logo hover-target">
-          <img src={logo} alt="Gagner Sports" style={{ height: '40px', objectFit: 'contain' }} />
+          <img src={content.find((c: any) => c.type === 'logo')?.imageUrl || logo} alt="Gagner Sports" style={{ height: '40px', objectFit: 'contain' }} />
         </Link>
         
         <div className="nav-links">
@@ -75,7 +80,7 @@ export default function UserNavbar({ onOpenLeaderboard }: { onOpenLeaderboard: (
       <div className={`mobile-menu-overlay ${isMobileMenuOpen ? 'active' : ''}`} onClick={closeMobileMenu}></div>
       <div className={`mobile-menu ${isMobileMenuOpen ? 'active' : ''}`}>
         <div className="mobile-menu-header">
-          <img src={logo} alt="Gagner Sports" style={{ height: '35px', objectFit: 'contain' }} />
+          <img src={content.find((c: any) => c.type === 'logo')?.imageUrl || logo} alt="Gagner Sports" style={{ height: '35px', objectFit: 'contain' }} />
           <button className="mobile-close-btn" onClick={closeMobileMenu} aria-label="Close menu">✕</button>
         </div>
         <div className="mobile-menu-links">
@@ -103,3 +108,5 @@ export default function UserNavbar({ onOpenLeaderboard }: { onOpenLeaderboard: (
     </>
   );
 }
+
+export default UserNavbar;

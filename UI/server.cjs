@@ -2,55 +2,98 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const dns = require('dns');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 require('dotenv').config();
-
-const fs = require('fs');
-const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const DB_PATH = path.join(__dirname, 'db_fallback.json');
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
-let USE_LOCAL_DB = false;
-let localState = { events: {}, participants: [], coupons: [], leaderboard: {}, audit: [] };
+// --- CLOUDINARY CONFIG ---
+const cloudinaryConfigured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
+    && process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloud_name');
 
-// Load initial local state
-if (fs.existsSync(DB_PATH)) {
-    try { localState = JSON.parse(fs.readFileSync(DB_PATH, 'utf8')); } catch(e) { console.error("Error loading local DB:", e.message); }
+if (cloudinaryConfigured) {
+    cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+    console.log('\x1b[36m%s\x1b[0m', '☁️  Cloudinary CDN: Configured & Ready');
+} else {
+    console.log('\x1b[33m%s\x1b[0m', '⚠️  Cloudinary CDN: Not configured. Image uploads will use URL-only mode. Set CLOUDINARY_* in .env to enable.');
 }
 
-const saveLocal = () => fs.writeFileSync(DB_PATH, JSON.stringify(localState, null, 2));
+const storage = cloudinaryConfigured
+    ? new CloudinaryStorage({
+        cloudinary,
+        params: { folder: 'gagner_sports', allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'avif', 'svg', 'gif'], transformation: [{ quality: 'auto', fetch_format: 'auto' }] },
+    })
+    : multer.memoryStorage();
 
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+// Fix DNS: use Google DNS to resolve MongoDB Atlas SRV records
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 dns.setDefaultResultOrder('ipv4first');
 
-// --- MONGODB_URI (SRV with IPv4 Preference) ---
-async function connectDB(retries = 1) {
-    const uri = process.env.MONGODB_URI || "mongodb+srv://gagner_sports:gagner2026sports@gagnersports.nxw3p4l.mongodb.net/gagnersports";
+let isFallbackMode = false;
+let fallbackData = {
+    events: {},
+    participants: [],
+    coupons: [],
+    content: [],
+    leaderboard: {},
+    audit: []
+};
+
+// Load fallback data from local JSON
+function loadFallbackData() {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const data = JSON.parse(fs.readFileSync(path.join(__dirname, 'db_fallback.json'), 'utf8'));
+        fallbackData = { ...fallbackData, ...data };
+        console.log('\x1b[33m%s\x1b[0m', '📂 LOCAL DATA LOADED: Fallback data initialized from db_fallback.json');
+    } catch (err) {
+        console.error('⚠️ Could not load db_fallback.json:', err.message);
+    }
+}
+
+// --- MONGODB CONNECTION (Production-Grade with Smart Fallback) ---
+async function connectDB(retries = 3) {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+        console.error('\x1b[31m%s\x1b[0m', '❌ FATAL: MONGODB_URI not found in .env file. Server cannot start without a database.');
+        process.exit(1);
+    }
 
     for (let i = 1; i <= retries; i++) {
         try {
-            console.log(`📡 [Attempt ${i}/1] Connecting to Atlas (Database: gagnersports)...`);
-            await mongoose.connect(uri, { serverSelectionTimeoutMS: 3000 });
-            console.log('\x1b[32m%s\x1b[0m', '------------------------------------------------');
-            console.log('\x1b[32m%s\x1b[0m', '🚀 GREEN: Connection 100% stable (Atlas SRV)');
-            console.log('\x1b[32m%s\x1b[0m', '✅ Status: Authentication Successful');
-            console.log('\x1b[32m%s\x1b[0m', '------------------------------------------------');
-            
-            await injectEliteData();
+            console.log(`📡 [Attempt ${i}/${retries}] Connecting to MongoDB Atlas...`);
+            await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000 });
+            console.log('\x1b[32m%s\x1b[0m', '────────────────────────────────────────────────');
+            console.log('\x1b[32m%s\x1b[0m', '🚀 CONNECTED: MongoDB Atlas (Production)');
+            console.log('\x1b[32m%s\x1b[0m', '✅ Status: Authenticated & Authorized');
+            console.log('\x1b[32m%s\x1b[0m', `📦 Database: ${mongoose.connection.db.databaseName}`);
+            console.log('\x1b[32m%s\x1b[0m', '────────────────────────────────────────────────');
+            isFallbackMode = false;
             return;
         } catch (err) {
-            console.error('\x1b[31m%s\x1b[0m', `❌ [Failed] ${err.message}`);
+            console.error('\x1b[31m%s\x1b[0m', `❌ [Attempt ${i}/${retries}] ${err.message}`);
             if (i === retries) {
-                console.warn('\x1b[33m%s\x1b[0m', '⚠️  NOTICE: Persistent DNS/Atlas block. Pivoting to LOCAL SYNC mode (db_fallback.json).');
-                USE_LOCAL_DB = true;
-                await injectEliteData(); // Inject data into localState if DB connection fails
+                console.warn('\x1b[33m%s\x1b[0m', '⚠️ WARNING: Could not connect to MongoDB Atlas after all retries.');
+                console.warn('\x1b[33m%s\x1b[0m', '🚀 SWITCHING TO LOCAL FALLBACK MODE (Service limited to local data)');
+                isFallbackMode = true;
+                loadFallbackData();
                 return;
             }
-            console.log('⏳ Retrying in 2 seconds...');
-            await new Promise(r => setTimeout(r, 2000));
+            console.log('⏳ Retrying in 3 seconds...');
+            await new Promise(r => setTimeout(r, 3000));
         }
     }
 }
@@ -58,134 +101,321 @@ async function connectDB(retries = 1) {
 connectDB();
 
 // --- Schemas & Models ---
-const categorySchema = new mongoose.Schema({ name: String, price: String, details: [String], prizes: Map }, { _id: false });
-const eventSchema = new mongoose.Schema({ slug: { type: String, unique: true }, title: String, tag: String, date: String, time: String, venue: String, bgImg: String, desc: String, categories: [categorySchema], deliverables: [String], registrationOpen: { type: Boolean, default: true }, archived: { type: Boolean, default: false }, isDraft: { type: Boolean, default: false }, status: { type: String, enum: ['Open', 'Closed', 'Sold Out', 'Coming Soon'], default: 'Open' }, registeredCount: { type: Number, default: 0 }, latLng: { lat: Number, lng: Number }, completedDate: String, capacity: Number, createdAt: { type: String, default: () => new Date().toISOString() } });
+const categorySchema = new mongoose.Schema(
+    { name: String, price: String, details: [String], prizes: Map },
+    { _id: false }
+);
+
+const eventSchema = new mongoose.Schema({
+    slug: { type: String, unique: true },
+    title: String, tag: String, date: String, time: String,
+    venue: String, bgImg: String, desc: String,
+    categories: [categorySchema], deliverables: [String],
+    registrationOpen: { type: Boolean, default: true },
+    registrationStart: String, registrationEnd: String,
+    rules: String, prizes_desc: String,
+    contact_email: String, contact_phone: String,
+    archived: { type: Boolean, default: false },
+    isDraft: { type: Boolean, default: false },
+    status: { type: String, enum: ['Open', 'Closed', 'Sold Out', 'Coming Soon'], default: 'Open' },
+    registeredCount: { type: Number, default: 0 },
+    latLng: { lat: Number, lng: Number },
+    completedDate: String, capacity: Number,
+    createdAt: { type: String, default: () => new Date().toISOString() }
+});
+
+const participantSchema = new mongoose.Schema({
+    id: String, name: String, email: String, phone: String,
+    city: String, gender: String, ageGroup: String, age: String, tshirtSize: String,
+    eventSlug: String, eventName: String, category: String,
+    paymentStatus: { type: String, enum: ['Paid', 'Pending', 'Failed'], default: 'Pending' },
+    registeredAt: { type: String, default: () => new Date().toISOString() }
+});
+
+const couponSchema = new mongoose.Schema({
+    id: String,
+    code: { type: String, unique: true },
+    discountType: { type: String, enum: ['percent', 'fixed'] },
+    discountValue: Number, discountPercent: Number,
+    maxUses: Number, usedCount: { type: Number, default: 0 },
+    expiryDate: String, active: { type: Boolean, default: true },
+    createdAt: { type: String, default: () => new Date().toISOString() },
+    eventId: String
+});
+
+const contentSchema = new mongoose.Schema({
+    id: String,
+    type: { type: String, enum: ['image', 'logo', 'sponsor', 'content', 'gallery', 'service', 'contact'] },
+    title: String, imageUrl: String, description: String,
+    link: String, buttonName: String, metadata: mongoose.Schema.Types.Mixed,
+    order: { type: Number, default: 0 },
+    active: { type: Boolean, default: true }
+});
+
+const auditSchema = new mongoose.Schema({
+    timestamp: { type: String, default: () => new Date().toISOString() },
+    user: String, action: String, target: String, details: String
+});
+
+const leaderboardSchema = new mongoose.Schema({
+    eventSlug: { type: String, unique: true },
+    winners: [{ name: String, time: String }],
+    expireAt: { type: Date, expires: 0 } // TTL index: autodeletes when current time matches expireAt
+});
+
 const Event = mongoose.model('Event', eventSchema);
-const Participant = mongoose.model('Participant', new mongoose.Schema({ id: String, name: String, email: String, phone: String, city: String, gender: String, ageGroup: String, eventSlug: String, eventName: String, category: String, paymentStatus: { type: String, enum: ['Paid', 'Pending', 'Failed'], default: 'Pending' }, registeredAt: { type: String, default: () => new Date().toISOString() } }));
-const Coupon = mongoose.model('Coupon', new mongoose.Schema({ id: String, code: { type: String, unique: true }, discountType: { type: String, enum: ['percent', 'fixed'] }, discountValue: Number, discountPercent: Number, maxUses: Number, usedCount: { type: Number, default: 0 }, expiryDate: String, active: { type: Boolean, default: true }, createdAt: { type: String, default: () => new Date().toISOString() }, eventId: String }));
-const Audit = mongoose.model('Audit', new mongoose.Schema({ timestamp: { type: String, default: () => new Date().toISOString() }, user: String, action: String, target: String, details: String }));
-const Leaderboard = mongoose.model('Leaderboard', new mongoose.Schema({ eventSlug: { type: String, unique: true }, winners: [{ name: String, time: String }] }));
+const Participant = mongoose.model('Participant', participantSchema);
+const Coupon = mongoose.model('Coupon', couponSchema);
+const Content = mongoose.model('Content', contentSchema);
+const Audit = mongoose.model('Audit', auditSchema);
+const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 
-async function injectEliteData() {
+// ========================
+// API ROUTES (All MongoDB)
+// ========================
+
+// --- EVENTS ---
+app.get('/api/events', async (req, res) => {
     try {
-        let eventsCount = 0;
-        let pCount = 0;
-        let cCount = 0;
+        if (isFallbackMode) return res.json(fallbackData.events || {});
+        const events = await Event.find();
+        const obj = {};
+        events.forEach(e => obj[e.slug] = e);
+        res.json(obj);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
-        if (!USE_LOCAL_DB) {
-            eventsCount = await Event.countDocuments();
-            pCount = await Participant.countDocuments();
-            cCount = await Coupon.countDocuments();
-        } else {
-            eventsCount = Object.keys(localState.events).length;
-            pCount = localState.participants.length;
-            cCount = localState.coupons.length;
+app.post('/api/events-batch', async (req, res) => {
+    try {
+        if (isFallbackMode) {
+            fallbackData.events = req.body;
+            return res.json({ success: true, warning: 'Saved to local memory only' });
         }
+        await Event.deleteMany({});
+        const events = Object.values(req.body);
+        if (events.length > 0) await Event.insertMany(events);
+        res.json({ success: true });
+    } catch (e) { console.error('BATCH ERROR:', e.message); res.status(500).json({ error: e.message }); }
+});
 
-        if (eventsCount === 0) {
-            console.log('🚢 DATA: Injecting elite events...');
-            const realEvents = [
-                { slug: 'chennai-juniorthon-2026', title: 'Chennai Juniorthon 2026', tag: 'KIDS', date: '2026-06-15', time: '06:00 AM', venue: 'Island Grounds, Chennai', bgImg: '/src/assets/images/chennai_juniorthon.png', desc: 'India’s largest junior run.', registrationOpen: true, status: 'Open', deliverables: ['Finisher Medal', 'Breakfast'], categories: [{ name: 'Kid (1-4km)', price: '650' }] },
-                { slug: 'womens-day-run-2026', title: 'Women\'s Day Run 2026', tag: 'FITNESS', date: '2026-03-08', time: '05:30 AM', venue: 'Marina Beach, Chennai', bgImg: '/src/assets/images/womens_day_run.png', desc: 'Fitness celebration.', registrationOpen: true, status: 'Open', categories: [{ name: '5K Run', price: '499' }] },
-                { slug: 'health-day-run-2026', title: 'Health Day Run 2026', tag: 'FAMILY', date: '2026-04-07', time: '05:45 AM', venue: 'Besant Nagar, Chennai', bgImg: '/src/assets/images/health_day_run.png', desc: 'Community run.', registrationOpen: true, status: 'Open' },
-                { slug: 'fathers-day-marathon-2026', title: 'Father\'s Day Marathon 2026', tag: 'CORPORATE', date: '2026-06-21', time: '06:15 AM', venue: 'VGP Universal Kingdom', bgImg: '/src/assets/images/fathers_day_marathon.png', desc: 'Bonding marathon.', registrationOpen: true, status: 'Open' }
-            ];
-            if (!USE_LOCAL_DB) await Event.insertMany(realEvents);
-            else { realEvents.forEach(e => localState.events[e.slug] = e); }
+// --- PARTICIPANTS ---
+app.get('/api/participants', async (req, res) => {
+    try {
+        if (isFallbackMode) return res.json(fallbackData.participants || []);
+        res.json(await Participant.find());
+    }
+    catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/participants', async (req, res) => {
+    try {
+        if (isFallbackMode) {
+            fallbackData.participants.push({ ...req.body, registeredAt: new Date().toISOString() });
+            return res.status(201).json({ success: true, warning: 'Saved to local memory only' });
         }
-
-        if (pCount === 0) {
-            console.log('🚢 DATA: Injecting initial participants...');
-            const parts = [
-                { id: 'P001', name: 'Rahul Subramanian', email: 'rahul.s@gmail.com', phone: '9840512345', city: 'Chennai', gender: 'Male', ageGroup: '18-35', eventSlug: 'chennai-juniorthon-2026', eventName: 'Chennai Juniorthon 2026', category: 'Kid (1-4km)', paymentStatus: 'Paid', registeredAt: new Date().toISOString() },
-                { id: 'P002', name: 'Ananya Iyer', email: 'ananya.iyer@outlook.com', phone: '9600154321', city: 'Chennai', gender: 'Female', ageGroup: '18-35', eventSlug: 'womens-day-run-2026', eventName: 'Women\'s Day Run 2026', category: '5K Run', paymentStatus: 'Paid', registeredAt: new Date().toISOString() }
-            ];
-            if (!USE_LOCAL_DB) await Participant.insertMany(parts);
-            else { localState.participants = parts; }
-        }
-
-        if (cCount === 0) {
-            console.log('🚢 DATA: Injecting initial coupons...');
-            const coupons = [
-                { id: 'C01', code: 'GAGNER10', discountType: 'percent', discountPercent: 10, maxUses: 100, usedCount: 5, active: true, expiryDate: '2026-12-31', createdAt: new Date().toISOString() },
-                { id: 'C02', code: 'PROMO20', discountType: 'percent', discountPercent: 20, maxUses: 50, usedCount: 10, active: true, expiryDate: '2026-11-30', createdAt: new Date().toISOString() }
-            ];
-            if (!USE_LOCAL_DB) await Coupon.insertMany(coupons);
-            else { localState.coupons = coupons; }
-        }
-
-        if (USE_LOCAL_DB) saveLocal();
-        
-        console.log('\x1b[32m%s\x1b[0m', `✅ INJECTION: Data Sync complete (${USE_LOCAL_DB ? 'LOCAL' : 'ATLAS'}).`);
-    } catch (e) { console.error('❌ INJECTION ERROR:', e.message); }
-}
-
-// API
-app.get('/api/events', async (req, res) => { 
-    try { 
-        if (USE_LOCAL_DB) return res.json(localState.events);
-        const e = await Event.find(); 
-        const o = {}; e.forEach(x => o[x.slug] = x); 
-        res.json(o); 
-    } catch (e) { res.status(500).json({ error: e.message }); } 
+        await new Participant(req.body).save();
+        res.status(201).json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/events-batch', async (req, res) => { 
-    try { 
-        if (USE_LOCAL_DB) { localState.events = req.body; saveLocal(); return res.json({ success: true }); }
-        await Event.deleteMany({}); 
-        await Event.insertMany(Object.values(req.body)); 
-        res.status(200).json({ success: true }); 
-    } catch (e) { console.error('BATCH ERROR:', e.message); res.status(500).json({ error: e.message }); } 
+// Batch replace all participants (for bulk delete/update from admin)
+app.post('/api/participants-batch', async (req, res) => {
+    try {
+        await Participant.deleteMany({});
+        const data = Array.isArray(req.body) ? req.body : [];
+        if (data.length > 0) await Participant.insertMany(data);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/participants', async (req, res) => { 
-    try { 
-        if (USE_LOCAL_DB) return res.json(localState.participants);
-        res.json(await Participant.find()); 
-    } catch (e) { res.status(500).json({ error: e.message }); } 
+// --- COUPONS ---
+app.get('/api/coupons', async (req, res) => {
+    try {
+        if (isFallbackMode) return res.json(fallbackData.coupons || []);
+        res.json(await Coupon.find());
+    }
+    catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/participants', async (req, res) => { 
-    try { 
-        if (USE_LOCAL_DB) { localState.participants.push(req.body); saveLocal(); return res.status(201).json({ success: true }); }
-        await new Participant(req.body).save(); 
-        res.status(201).json({ success: true }); 
-    } catch (e) { res.status(500).json({ error: e.message }); } 
+app.post('/api/coupons', async (req, res) => {
+    try {
+        await Coupon.deleteMany({});
+        const data = Array.isArray(req.body) ? req.body : [req.body];
+        if (data.length > 0) await Coupon.insertMany(data);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/coupons', async (req, res) => { 
-    try { 
-        if (USE_LOCAL_DB) return res.json(localState.coupons);
-        res.json(await Coupon.find()); 
-    } catch (e) { res.status(500).json({ error: e.message }); } 
+// --- CONTENT (CMS - Sponsors/Logos/Images) ---
+app.get('/api/content', async (req, res) => {
+    try {
+        if (isFallbackMode) return res.json(fallbackData.content || []);
+        res.json(await Content.find().sort({ order: 1 }));
+    }
+    catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/coupons', async (req, res) => { 
-    try { 
-        if (USE_LOCAL_DB) { localState.coupons = Array.isArray(req.body) ? req.body : [req.body]; saveLocal(); return res.json({ success: true }); }
-        await Coupon.deleteMany({}); 
-        await Coupon.insertMany(Array.isArray(req.body) ? req.body : [req.body]); 
-        res.status(200).json({ success: true }); 
-    } catch (e) { res.status(500).json({ error: e.message }); } 
+app.post('/api/content', async (req, res) => {
+    try {
+        await Content.deleteMany({});
+        const data = Array.isArray(req.body) ? req.body : [req.body];
+        if (data.length > 0) await Content.insertMany(data);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/leaderboard', async (req, res) => { 
-    try { 
-        if (USE_LOCAL_DB) return res.json(localState.leaderboard);
-        const lb = await Leaderboard.find(); 
-        const o = {}; lb.forEach(x => o[x.eventSlug] = x.winners); 
-        res.json(o); 
-    } catch (e) { res.status(500).json({ error: e.message }); } 
+// --- LEADERBOARD ---
+app.get('/api/leaderboard', async (req, res) => {
+    try {
+        if (isFallbackMode) return res.json(fallbackData.leaderboard || {});
+        const lb = await Leaderboard.find();
+        const obj = {};
+        lb.forEach(x => obj[x.eventSlug] = x.winners);
+        res.json(obj);
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/leaderboard', async (req, res) => { 
-    try { 
+app.post('/api/leaderboard', async (req, res) => {
+    try {
         const { eventSlug, winners } = req.body;
-        if (USE_LOCAL_DB) { localState.leaderboard[eventSlug] = winners; saveLocal(); return res.json({ success: true }); }
-        await Leaderboard.findOneAndUpdate({ eventSlug }, { winners }, { upsert: true }); 
-        res.status(200).json({ success: true }); 
-    } catch (e) { res.status(500).json({ error: e.message }); } 
+        const event = await Event.findOne({ slug: eventSlug });
+        let expireAt = null;
+        if (event && event.date) {
+            const eventDate = new Date(event.date);
+            eventDate.setDate(eventDate.getDate() + 30);
+            expireAt = eventDate;
+        } else {
+            // Fallback: 30 days from now if event.date is invalid or event missing
+            const fallbackDate = new Date();
+            fallbackDate.setDate(fallbackDate.getDate() + 30);
+            expireAt = fallbackDate;
+        }
+        await Leaderboard.findOneAndUpdate({ eventSlug }, { winners, expireAt }, { upsert: true });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.listen(PORT, () => { console.log(`🚀 Gagner Sports Backend Running at http://localhost:${PORT}`); });
+app.delete('/api/leaderboard/:slug', async (req, res) => {
+    try {
+        await Leaderboard.deleteOne({ eventSlug: req.params.slug });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- AUDIT ---
+app.get('/api/audit', async (req, res) => {
+    try { res.json(await Audit.find().sort({ timestamp: -1 }).limit(100)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/audit', async (req, res) => {
+    try {
+        await new Audit(req.body).save();
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/audit', async (req, res) => {
+    try {
+        await Audit.deleteMany({});
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ========================
+// IMAGE UPLOAD ROUTE (Cloudinary CDN)
+// ========================
+app.post('/api/upload', upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file provided' });
+
+        let secureUrl;
+        if (cloudinaryConfigured) {
+            // Multer-storage-cloudinary auto-uploads; URL is in req.file.path
+            secureUrl = req.file.path;
+        } else {
+            return res.status(503).json({ error: 'Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in .env' });
+        }
+
+        console.log('\x1b[32m%s\x1b[0m', `☁️  Uploaded to Cloudinary: ${secureUrl}`);
+        res.json({ success: true, url: secureUrl });
+    } catch (e) {
+        console.error('Upload error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ========================
+// DMS ROUTES (Individual CRUD by type)
+// ========================
+
+// Logo-specific: Replace the single master logo (upsert) — MUST be before :type/:id
+app.post('/api/dms/logo/upsert', async (req, res) => {
+    try {
+        const result = await Content.findOneAndUpdate(
+            { type: 'logo' },
+            { ...req.body, type: 'logo', id: req.body.id || 'master_logo', active: true },
+            { upsert: true, new: true }
+        );
+        await new Audit({ user: 'admin', action: 'UPSERT', target: 'DMS/logo', details: 'Master brand logo updated' }).save();
+        res.json(result);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Generic: get all content items of a specific type
+app.get('/api/dms/:type', async (req, res) => {
+    try {
+        if (isFallbackMode) {
+            return res.json(fallbackData.content.filter(i => i.type === req.params.type));
+        }
+        const items = await Content.find({ type: req.params.type }).sort({ order: 1 });
+        res.json(items);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Create a single content item
+app.post('/api/dms/:type', async (req, res) => {
+    try {
+        const item = new Content({ ...req.body, type: req.params.type, id: req.body.id || `${req.params.type}_${Date.now()}` });
+        await item.save();
+        await new Audit({ user: 'admin', action: 'CREATE', target: `DMS/${req.params.type}`, details: item.title || item.id }).save();
+        res.status(201).json(item);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Update a single content item by MongoDB _id
+app.put('/api/dms/:type/:id', async (req, res) => {
+    try {
+        const updated = await Content.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updated) return res.status(404).json({ error: 'Item not found' });
+        await new Audit({ user: 'admin', action: 'UPDATE', target: `DMS/${req.params.type}`, details: updated.title || updated.id }).save();
+        res.json(updated);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Delete a single content item by MongoDB _id
+app.delete('/api/dms/:type/:id', async (req, res) => {
+    try {
+        const deleted = await Content.findByIdAndDelete(req.params.id);
+        if (!deleted) return res.status(404).json({ error: 'Item not found' });
+        await new Audit({ user: 'admin', action: 'DELETE', target: `DMS/${req.params.type}`, details: deleted.title || deleted.id }).save();
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- Health Check ---
+app.get('/api/health', async (req, res) => {
+    const dbState = isFallbackMode ? 0 : mongoose.connection.readyState;
+    const states = { 0: 'FallBack Active (Offline)', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+    res.json({
+        status: (dbState === 1 || isFallbackMode) ? 'healthy' : 'unhealthy',
+        database: states[dbState] || 'unknown',
+        mode: isFallbackMode ? 'Local Fallback' : 'Production Atlas',
+        timestamp: new Date().toISOString()
+    });
+});
+
+app.listen(PORT, () => {
+    console.log(`🚀 Gagner Sports Backend Running at http://localhost:${PORT}`);
+    console.log('\x1b[33m%s\x1b[0m', '📋 SMART FALLBACK ENABLED: Will use local data if Atlas is unreachable.');
+});

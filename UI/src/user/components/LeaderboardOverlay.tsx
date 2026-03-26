@@ -7,29 +7,7 @@ interface LeaderboardEntry {
     time: string;
 }
 
-const leaderboardData: Record<string, LeaderboardEntry[]> = {
-    'womens-day': [
-        {name: "Sarah Johnson", time: "02:15:30"},
-        {name: "Priya Sharma", time: "02:18:45"},
-        {name: "Emily Chen", time: "02:20:10"},
-        {name: "Anita Desai", time: "02:22:55"},
-        {name: "Maria Garcia", time: "02:25:00"}
-    ],
-    'health-day': [
-        {name: "Rahul Kumar", time: "00:45:12"},
-        {name: "David Smith", time: "00:46:30"},
-        {name: "Arjun Reddy", time: "00:47:15"},
-        {name: "Michael Chang", time: "00:48:05"},
-        {name: "Karthik N.", time: "00:49:20"}
-    ],
-    'fathers-day': [
-        {name: "James & Tommy", time: "01:10:45"},
-        {name: "Raj & Aryan", time: "01:12:30"},
-        {name: "Robert & Bobby", time: "01:15:00"},
-        {name: "Vikram & Dev", time: "01:16:20"},
-        {name: "Ali & Hassan", time: "01:18:10"}
-    ]
-};
+
 
 export default function LeaderboardOverlay({ isOpen, onClose, events, leaderboardData }: { isOpen: boolean, onClose: () => void, events: any[], leaderboardData: any }) {
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -49,17 +27,22 @@ export default function LeaderboardOverlay({ isOpen, onClose, events, leaderboar
 
     useEffect(() => {
         if (view === 'standings') {
-            gsap.fromTo('.lb-winner-row', { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.5, stagger: 0.05 });
+            const tl = gsap.timeline();
+            tl.to('.user-podium-wrapper', { opacity: 1, duration: 0.3 })
+              .to('.podium-box', { scaleY: 1, duration: 0.8, stagger: 0.1, ease: 'back.out(1.5)' }, "-=0.1")
+              .to('.podium-info', { opacity: 1, y: 0, duration: 0.5, stagger: 0.1 }, "-=0.4");
         }
-    }, [view]);
+    }, [view, selectedEvent]);
 
     if (!isOpen) return null;
 
-    const leaderboardList = (events || []).map(ev => ({
-        slug: ev.slug,
-        name: ev.title,
-        image: ev.bgImg || `/images/${ev.slug.replace(/-/g, '_')}.png`
-    }));
+    const leaderboardList = (events || [])
+        .filter(ev => leaderboardData[ev.slug] && leaderboardData[ev.slug].length > 0)
+        .map(ev => ({
+            slug: ev.slug,
+            name: ev.title,
+            image: ev.bgImg || `/images/${ev.slug.replace(/-/g, '_')}.png`
+        }));
 
     const currentWinners = selectedEvent ? (leaderboardData[selectedEvent.slug] || []) : [];
 
@@ -79,7 +62,7 @@ export default function LeaderboardOverlay({ isOpen, onClose, events, leaderboar
                 <div className="lb-content-area">
                     {view === 'grid' ? (
                         <div className="lb-events-grid active" id="lb-events-grid">
-                            {leaderboardList.map((item, idx) => (
+                            {leaderboardList.length > 0 ? leaderboardList.map((item, idx) => (
                                 <div key={idx} className="lb-event-card hover-target" onClick={() => {
                                     setSelectedEvent(item);
                                     setView('standings');
@@ -96,10 +79,16 @@ export default function LeaderboardOverlay({ isOpen, onClose, events, leaderboar
                                     <div className="lb-card-content">
                                         <div className="lb-tag">MARATHON</div>
                                         <h3>{item.name}</h3>
-                                        <div className="lb-action">VIEW STANDINGS →</div>
+                                        <div className="lb-action">VIEW PODIUM →</div>
                                     </div>
                                 </div>
-                            ))}
+                            )) : (
+                                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '4rem', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
+                                    <h4 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>NO LEADERBOARDS YET</h4>
+                                    <p style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>Results will be posted soon after the events are completed.</p>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="lb-standings-view">
@@ -109,15 +98,29 @@ export default function LeaderboardOverlay({ isOpen, onClose, events, leaderboar
                             <h3 className="lb-event-name" style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '3rem', textTransform: 'uppercase' }}>{selectedEvent?.name}</h3>
                             <div className="lb-winners-list">
                                 {currentWinners.length > 0 ? (
-                                    currentWinners.map((w: any, index: number) => (
-                                        <div key={index} className={`lb-winner-row rank-${index + 1}`}>
-                                            <div className="lb-rank">0{index + 1}</div>
-                                            <div className="lb-winner-info">
-                                                <div className="lb-winner-name">{w.name}</div>
+                                    <div className="user-podium-wrapper">
+                                        <div className="podium-step podium-rank-2">
+                                            <div className="podium-info">
+                                                <div className="podium-name">{currentWinners[1]?.name || '—'}</div>
+                                                <div className="podium-time">{currentWinners[1]?.time || '—'}</div>
                                             </div>
-                                            <div className="lb-winner-time">{w.time}</div>
+                                            <div className="podium-box">2</div>
                                         </div>
-                                    ))
+                                        <div className="podium-step podium-rank-1">
+                                            <div className="podium-info">
+                                                <div className="podium-name">{currentWinners[0]?.name || '—'}</div>
+                                                <div className="podium-time">{currentWinners[0]?.time || '—'}</div>
+                                            </div>
+                                            <div className="podium-box">1</div>
+                                        </div>
+                                        <div className="podium-step podium-rank-3">
+                                            <div className="podium-info">
+                                                <div className="podium-name">{currentWinners[2]?.name || '—'}</div>
+                                                <div className="podium-time">{currentWinners[2]?.time || '—'}</div>
+                                            </div>
+                                            <div className="podium-box">3</div>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>

@@ -102,12 +102,7 @@ export default function BlogDetailsPage() {
                         <h4 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '2rem', textTransform: 'uppercase' }}>Building The Future of Athletics</h4>
                         <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '2rem 0' }}></div>
                         
-                        <div className="share-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.8rem', color: '#555', letterSpacing: '2px' }}>SHARE:</span>
-                            {['TW', 'IN', 'FB'].map(s => (
-                                <span key={s} style={{ color: '#ff5f00', fontWeight: 800, cursor: 'pointer', fontSize: '0.9rem' }} className="hover-target">{s}</span>
-                            ))}
-                        </div>
+
                     </div>
                     
                     <div style={{ marginTop: '4rem', paddingLeft: '2rem', borderLeft: '2px solid #ff5f00', opacity: 0.5, fontSize: '0.9rem', lineHeight: '1.8' }}>

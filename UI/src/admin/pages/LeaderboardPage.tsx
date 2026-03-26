@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Card, Select, Form, Input, Button, Typography, Space, message, Empty, Row, Col, Skeleton } from 'antd';
-import { TrophyOutlined, SaveOutlined, CrownOutlined } from '@ant-design/icons';
+import { TrophyOutlined, SaveOutlined, CrownOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useEvents, useLeaderboard } from '../../shared/hooks/useSync';
-import { saveLeaderboard, LeaderboardEntry } from '../../shared/utils/storage';
+import { saveLeaderboard, deleteLeaderboard, LeaderboardEntry } from '../../shared/utils/storage';
 import { logAction } from '../../shared/utils/auditLog';
 import { leaderboardEntrySchema, zodToFieldErrors } from '../../shared/utils/schemas';
 import { COLOR_PRIMARY, COLOR_ACCENT, getPalette } from '../../shared/theme';
@@ -38,7 +38,7 @@ export default function LeaderboardPage() {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const raw = form.getFieldsValue();
     const parsed = leaderboardEntrySchema.safeParse(raw);
     if (!parsed.success) {
@@ -59,11 +59,25 @@ export default function LeaderboardPage() {
     ];
 
     try {
-      saveLeaderboard(selectedEvent, newWinners);
+      await saveLeaderboard(selectedEvent, newWinners);
       logAction('LEADERBOARD_UPDATED', events[selectedEvent]?.title || selectedEvent, `1st: ${val.first_name}, 2nd: ${val.second_name}, 3rd: ${val.third_name}`);
       message.success('Leaderboard saved!');
     } catch {
       message.error('Save failed');
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedEvent) return;
+    setSaving(true);
+    try {
+      await deleteLeaderboard(selectedEvent);
+      logAction('LEADERBOARD_DELETED', events[selectedEvent]?.title || selectedEvent, 'Leaderboard cleared');
+      message.success('Leaderboard deleted!');
+      handleEventSelect(selectedEvent); // Reset form
+    } catch {
+      message.error('Delete failed');
     }
     setSaving(false);
   };
@@ -155,10 +169,20 @@ export default function LeaderboardPage() {
                   </div>
                 ))}
 
-                <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving} block
-                  className="btn-brand-gradient" style={{ height: 44, fontWeight: 800, letterSpacing: '2px', marginTop: 8 }}>
-                  SAVE LEADERBOARD
-                </Button>
+                <Row gutter={10} style={{ marginTop: 8 }}>
+                  <Col span={18}>
+                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving} block
+                      className="btn-brand-gradient" style={{ height: 44, fontWeight: 800, letterSpacing: '2px' }}>
+                      SAVE LEADERBOARD
+                    </Button>
+                  </Col>
+                  <Col span={6}>
+                    <Button danger icon={<DeleteOutlined />} onClick={handleDelete} loading={saving} block
+                      style={{ height: 44, fontWeight: 800 }}>
+                      DELETE
+                    </Button>
+                  </Col>
+                </Row>
               </Form>
             </Card>
           </Col>

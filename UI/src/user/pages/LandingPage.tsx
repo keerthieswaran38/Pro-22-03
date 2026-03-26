@@ -1,11 +1,14 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { GagnerEvent } from '../../shared/utils/storage';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay } from 'swiper/modules';
+import 'swiper/css';
 
 declare const gsap: any;
 declare const ScrollTrigger: any;
 
-export default function LandingPage({ events, leaderboard }: { events: GagnerEvent[], leaderboard: any }) {
+export default function LandingPage({ events, leaderboard, content = [] }: { events: GagnerEvent[], leaderboard: any, content?: any[] }) {
   const [activeIndex, setActiveIndex] = React.useState(1);
 
   useLayoutEffect(() => {
@@ -23,9 +26,9 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
             }}
         );
 
-        // Parallax
+        // Parallax (reduced movement to prevent clipping)
         gsap.to(text, {
-            xPercent: -20 * parseFloat(text.dataset.speed || "1"),
+            xPercent: -5 * parseFloat(text.dataset.speed || "1"),
             ease: "none",
             scrollTrigger: {
                 trigger: '.about-massive',
@@ -49,7 +52,9 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
         gsap.set(servicesTrack, { x: 0, clearProps: "transform" });
 
         let mm = gsap.matchMedia();
-        mm.add("(min-width: 769px)", () => {
+        
+        // Horizontal scroll ONLY on screens > 480px
+        mm.add("(min-width: 481px)", () => {
             const getScrollAmount = () => {
                 const trackWidth = servicesTrack.scrollWidth;
                 const viewportWidth = document.documentElement.clientWidth;
@@ -102,7 +107,14 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
                 gsap.set(servicesTrack, { clearProps: "all" });
             };
         });
+
+        // On mobile (≤480px): ensure no horizontal scrolling, stack cards vertically
+        mm.add("(max-width: 480px)", () => {
+            gsap.set(servicesTrack, { clearProps: "all", x: 0 });
+            return () => {};
+        });
     }
+
 
     // --- HEADING REVEAL ---
     gsap.utils.toArray('.heading-unique').forEach((heading: any) => {
@@ -167,7 +179,7 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
 
         // Reset all slides
         gsap.set(slides, { display: 'none', opacity: 0, zIndex: 1, scale: 1, clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' });
-        gsap.set(slides[0], { display: 'block', opacity: 1, zIndex: 10 });
+        gsap.set(slides[0], { display: 'flex', opacity: 1, zIndex: 10 });
 
         // Floating Effect for Active Slide
         const startFloating = (el: Element) => {
@@ -197,7 +209,7 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
             
             // 1. Position next slide BELOW the current one but ready
             tl.set(slides[next], { 
-                display: 'block',
+                display: 'flex',
                 opacity: 1,
                 zIndex: 20,
                 scale: 1.2,
@@ -294,19 +306,38 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
     <div className="landing-page-mad">
       <section className="hero-brutal">
           <div className="hero-content">
-              <h1 className="hero-title"><span>WE ENGINEER</span></h1>
-              <h1 className="hero-title indent"><span className="secondary">ATHLETIC</span></h1>
-              <h1 className="hero-title"><span>EXCELLENCE</span></h1>
+              <h1 className="hero-title"><span className="primary">WE ENGINEER</span></h1>
+              <h1 className="hero-title indent"><span className="white">ATHLETIC</span></h1>
+              <h1 className="hero-title"><span className="secondary">EXCELLENCE</span></h1>
               <div className="hero-footer">
-                  <p>05 YEARS OF ELITE MARATHON MANAGEMENT</p>
+                  <p>05+ YEARS OF ELITE MARATHON MANAGEMENT</p>
                   <div className="scroll-indicator"><div className="line"></div><span>SCROLL</span></div>
               </div>
           </div>
           <div className="hero-visual">
-              <img src="/images/hero_marathon_8k.png" alt="8K Marathon Runner" className="hero-slide active" />
-              <img src="/images/hero_football.png" alt="Football Player" className="hero-slide" />
-              <img src="/images/hero_cricket.png" alt="Cricket Player" className="hero-slide" />
-              <img src="/images/hero_visual.png" alt="Athletes" className="hero-slide" />
+              {/* SLIDE 1 */}
+              <div className="hero-slide active">
+                  <div className="hero-slide-blur-bg" style={{ backgroundImage: "url('/images/hero_marathon_8k.png')" }}></div>
+                  <img src="/images/hero_marathon_8k.png" alt="8K Marathon Runner" className="hero-slide-img" />
+              </div>
+              
+              {/* SLIDE 2 */}
+              <div className="hero-slide">
+                  <div className="hero-slide-blur-bg" style={{ backgroundImage: "url('/images/hero_football.png')" }}></div>
+                  <img src="/images/hero_football.png" alt="Football Player" className="hero-slide-img" />
+              </div>
+              
+              {/* SLIDE 3 */}
+              <div className="hero-slide">
+                  <div className="hero-slide-blur-bg" style={{ backgroundImage: "url('/images/hero_cricket.png')" }}></div>
+                  <img src="/images/hero_cricket.png" alt="Cricket Player" className="hero-slide-img" />
+              </div>
+              
+              {/* SLIDE 4 */}
+              <div className="hero-slide">
+                  <div className="hero-slide-blur-bg" style={{ backgroundImage: "url('/images/hero_visual.png')" }}></div>
+                  <img src="/images/hero_visual.png" alt="Athletes" className="hero-slide-img" />
+              </div>
           </div>
       </section>
 
@@ -374,10 +405,10 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
               </h2>
           </div>
           <div className="events-stack">
-              {events.map((item, idx) => (
+              {(events || []).map((item, idx) => (
                   <div key={idx} className="event-stack-item hover-target">
                       <div className="esi-img">
-                          <img src={item.bgImg || `/images/${item.slug.replace(/-/g, '_')}.png`} alt={item.title} />
+                          <img src={item.bgImg || `/images/${item.slug.replace(/-/g, '_')}.png`} alt={item.title} loading="lazy" style={{ maxWidth: '100%', height: 'auto' }} />
                       </div>
                       <div className="esi-content">
                           <div className="esi-meta">
@@ -411,88 +442,74 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
           </div>
       </section>
 
-      <section id="gallery" className="gallery-clean-section" style={{ padding: '8rem 4rem', background: '#0a0a0a', position: 'relative' }}>
-          <div className="gallery-bg-text" style={{ position: 'absolute', top: '5%', left: '0', fontSize: '15vw', color: 'rgba(255,255,255,0.02)', whiteSpace: 'nowrap', fontWeight: 900, pointerEvents: 'none' }}>EVENT SHOWCASE</div>
-          
-          <div className="section-heading-wrap" style={{ marginBottom: '4rem', zIndex: 10, position: 'relative' }}>
+      <section id="gallery" className="gallery-clean-section" style={{ padding: '8rem 4rem', background: '#0a0a0a', position: 'relative', overflow: 'visible' }}>
+          <div className="gallery-bg-text" style={{ 
+              position: 'absolute', 
+              top: '5%', 
+              left: '50%', 
+              transform: 'translateX(-50%)',
+              fontSize: '15vw', 
+              color: 'transparent', 
+              WebkitTextStroke: '1.5px rgba(255,255,255,0.1)', 
+              whiteSpace: 'nowrap', 
+              fontWeight: 900, 
+              pointerEvents: 'none',
+              zIndex: 0
+          }}>SHOWCASE</div>
+                    <div className="section-heading-wrap" style={{ marginBottom: '4rem', zIndex: 10, position: 'relative', textAlign: 'center', width: '100%' }}>
               <h2 className="heading-unique">
-                  <span className="outline">MOMENTS</span>
-                  <span className="filled">OFFICIAL</span>
+                  <span className="filled">MOMENTS</span> <span className="outline">OFFICIAL</span>
               </h2>
           </div>
 
-          <div className="gallery-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-              gap: '1.5rem',
-              position: 'relative',
-              zIndex: 2
-          }}>
-              {[
-                  { img: 'https://gagnersports.com/wp-content/uploads/2025/10/DSC07340-1536x1153.jpg', title: 'Champions Spirit', tag: 'PODIUM' },
-                  { img: 'https://gagnersports.com/wp-content/uploads/2025/10/WhatsApp-Image-2025-10-06-at-2.40.03-PM-scaled.jpeg', title: 'The Starting Line', tag: 'RACE DAY' },
-                  { img: 'https://gagnersports.com/wp-content/uploads/2025/10/DSC07367-1536x1153.jpg', title: 'Victory Trophies', tag: 'AWARDS' },
-                  { img: 'https://gagnersports.com/wp-content/uploads/2025/10/DSC07474-scaled.jpg', title: 'Junior Athletes', tag: 'KIDS RUN' },
-                  { img: 'https://gagnersports.com/wp-content/uploads/2025/10/DSC07943-1536x1153.jpg', title: 'Endurance Test', tag: 'MARATHON' },
-                  { img: 'https://gagnersports.com/wp-content/uploads/2025/10/DSC07719-scaled.jpg', title: 'Community Run', tag: 'FITNESS' },
-                  { img: 'https://gagnersports.com/wp-content/uploads/2025/10/DSC07254-scaled-720x541.jpg', title: 'The Pacer Group', tag: 'ELITE' },
-                  { img: 'https://gagnersports.com/wp-content/uploads/2025/10/DSC07262-scaled-720x541.jpg', title: 'Energy Booster', tag: 'STADIUM' }
-              ].map((item, idx) => (
-                  <div key={idx} className="gallery-grid-item" style={{
-                      position: 'relative',
-                      overflow: 'hidden',
-                      borderRadius: '8px',
-                      aspectRatio: '4/3',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
-                  }} 
-                  onMouseEnter={(e) => {
-                      const img = e.currentTarget.querySelector('img');
-                      const overlay = e.currentTarget.querySelector('.gg-overlay') as HTMLElement;
-                      if (img) img.style.transform = 'scale(1.08)';
-                      if (overlay) overlay.style.opacity = '1';
-                  }}
-                  onMouseLeave={(e) => {
-                      const img = e.currentTarget.querySelector('img');
-                      const overlay = e.currentTarget.querySelector('.gg-overlay') as HTMLElement;
-                      if (img) img.style.transform = 'scale(1)';
-                      if (overlay) overlay.style.opacity = '0';
-                  }}>
-                      <img src={item.img} alt={item.title} style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          transition: 'transform 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
-                      }} />
-                      <div className="gg-overlay" style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)',
-                          opacity: 0,
-                          transition: 'opacity 0.4s ease',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'flex-end',
-                          padding: '2rem'
-                      }}>
-                          <span style={{
-                              color: '#ff5f00',
-                              fontSize: '0.8rem',
-                              fontWeight: 700,
-                              letterSpacing: '2px',
-                              marginBottom: '0.5rem',
-                              textTransform: 'uppercase'
-                          }}>{item.tag}</span>
-                          <h3 style={{
-                              color: '#fff',
-                              fontSize: '1.4rem',
-                              fontWeight: 800,
-                              margin: 0,
-                              textTransform: 'uppercase'
-                          }}>{item.title}</h3>
+          <div className="gallery-container">
+              {/* Desktop/Tablet Grid */}
+              <div className="gallery-grid">
+                  {((): { img: string; title: string; tag: string }[] => {
+                    const cmsGallery = (content || []).filter((c: any) => c.type === 'gallery' && c.active);
+                    if (cmsGallery.length > 0) {
+                      return cmsGallery.map((c: any) => ({ img: c.imageUrl, title: c.title, tag: c.description || '' }));
+                    }
+                    return [];
+                  })().map((item, idx) => (
+                      <div key={idx} className="gallery-grid-item animate" style={{ animationDelay: `${idx * 0.1}s` }}>
+                          <div className="gg-overlay">
+                              <h3 className="gg-caption outline-font">{item.title}</h3>
+                          </div>
+                          <img src={item.img} alt={item.title} loading="lazy" style={{ maxWidth: '100%', height: 'auto' }} />
                       </div>
-                  </div>
-              ))}
+                  ))}
+              </div>
+
+              {/* Mobile Carousel (Swiper) */}
+              <div className="gallery-carousel">
+                  <Swiper
+                      modules={[Autoplay]}
+                      spaceBetween={16}
+                      slidesPerView={1.15}
+                      centeredSlides={true}
+                      loop={true}
+                      autoplay={{ delay: 2500, disableOnInteraction: false, pauseOnMouseEnter: true }}
+                      speed={800}
+                  >
+                      {((): { img: string; title: string }[] => {
+                        const cmsGallery = (content || []).filter((c: any) => c.type === 'gallery' && c.active);
+                        if (cmsGallery.length > 0) {
+                          return cmsGallery.map((c: any) => ({ img: c.imageUrl, title: c.title }));
+                        }
+                        return [];
+                      })().map((item, idx) => (
+                          <SwiperSlide key={idx}>
+                              <div className="gallery-grid-item" style={{ height: '400px' }}>
+                                  <div className="gg-overlay" style={{ opacity: 1 }}>
+                                      <h3 className="gg-caption outline-font">{item.title}</h3>
+                                  </div>
+                                  <img src={item.img} alt={item.title} loading="lazy" style={{ maxWidth: '100%', height: 'auto' }} />
+                              </div>
+                          </SwiperSlide>
+                      ))}
+                  </Swiper>
+              </div>
           </div>
       </section>
 
@@ -541,52 +558,41 @@ export default function LandingPage({ events, leaderboard }: { events: GagnerEve
           </div>
       </section>
 
-      <section id="sponsors" style={{ padding: '6rem 0', background: '#111', overflow: 'hidden', borderTop: '1px solid #222' }}>
+      <section id="sponsors" className="sponsors-section">
           <div className="section-heading-wrap" style={{ marginBottom: '3rem' }}>
               <h2 className="heading-unique" style={{ fontSize: 'clamp(2.5rem, 8vw, 5rem)' }}>
                   <span className="outline">OUR</span>
                   <span className="filled">PARTNERS</span>
               </h2>
           </div>
-           <div style={{ display: 'flex', gap: '4rem', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              <div style={{ display: 'flex', gap: '5rem', animation: 'marquee 30s linear infinite', fontWeight: 800, fontSize: '2rem', color: '#555', alignItems: 'center' }}>
-                  <span style={{ color: '#ff5f00', fontSize: '1.2rem', letterSpacing: '4px' }}>OFFICIAL PARTNERS</span>
-                  {/* DECATHLON */}
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Decathlon_Logo.svg" alt="Decathlon" style={{ height: '25px', filter: 'brightness(0) invert(1)' }} />
-                  {/* GEM HOSPITAL */}
-                  <span style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 900 }}>GEM <span style={{ color: '#ff5f00' }}>HOSPITAL</span></span>
-                  {/* CONTUS */}
-                  <span style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 800 }}>CONTUS</span>
-                  {/* UNIBIC */}
-                  <span style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 700, fontStyle: 'italic' }}>UNIBIC</span>
-                  {/* JOSH */}
-                  <span style={{ color: '#ea4c89', fontSize: '1.8rem', fontWeight: 900 }}>Josh</span>
-                  {/* IOB */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '30px', height: '30px', background: '#00529b', color: '#fff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>IOB</div>
-                    <span style={{ color: '#fff', fontSize: '1.2rem' }}>Indian Overseas Bank</span>
-                  </div>
-              </div>
-              {/* Duplicate for infinite effect */}
-              <div style={{ display: 'flex', gap: '5rem', animation: 'marquee 30s linear infinite', fontWeight: 800, fontSize: '2rem', color: '#555', alignItems: 'center' }} aria-hidden="true">
-                  <span style={{ color: '#ff5f00', fontSize: '1.2rem', letterSpacing: '4px' }}>OFFICIAL PARTNERS</span>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Decathlon_Logo.svg" alt="Decathlon" style={{ height: '25px', filter: 'brightness(0) invert(1)' }} />
-                  <span style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 900 }}>GEM <span style={{ color: '#ff5f00' }}>HOSPITAL</span></span>
-                  <span style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 800 }}>CONTUS</span>
-                  <span style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 700, fontStyle: 'italic' }}>UNIBIC</span>
-                  <span style={{ color: '#ea4c89', fontSize: '1.8rem', fontWeight: 900 }}>Josh</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '30px', height: '30px', background: '#00529b', color: '#fff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>IOB</div>
-                    <span style={{ color: '#fff', fontSize: '1.2rem' }}>Indian Overseas Bank</span>
-                  </div>
-              </div>
+          <div className="sponsors-marquee-container">
+              {(() => {
+                const cmsSponsors = (content || []).filter((c: any) => c.type === 'sponsor' && c.active);
+                const sponsorList = cmsSponsors.length > 0
+                  ? cmsSponsors.map((s: any) => ({ name: s.title, img: s.imageUrl, link: s.link }))
+                  : [];
+                // Duplicate for seamless marquee
+                const doubled = [...sponsorList, ...sponsorList];
+                return (
+                  <>
+                    <div className="sponsors-marquee-track">
+                      {doubled.map((s: any, idx: number) => (
+                        <div key={idx} className="partner-logo-box hover-target">
+                          {s.img ? <img src={s.img} alt={s.name} style={{ height: 40, maxWidth: 120, objectFit: 'contain' }} /> : <span>{s.name}</span>}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="sponsors-marquee-track" aria-hidden="true">
+                      {doubled.map((s: any, idx: number) => (
+                        <div key={`dup-${idx}`} className="partner-logo-box hover-target">
+                          {s.img ? <img src={s.img} alt={s.name} style={{ height: 40, maxWidth: 120, objectFit: 'contain' }} /> : <span>{s.name}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
           </div>
-          <style>{`
-            @keyframes marquee {
-              0% { transform: translateX(0%); }
-              100% { transform: translateX(-100%); }
-            }
-          `}</style>
       </section>
 
       <section id="contact" className="contact-section">
