@@ -13,6 +13,8 @@ const CheckIcon = () => (
 export default function EventDetailsPage({ events, coupons }: { events: any, coupons: any[] }) {
   const { slug } = useParams();
   const navigate = useNavigate();
+  
+  const isDataLoading = Object.keys(events).length === 0;
   const event = events[slug || ''] || Object.values(events)[0];
 
   useEffect(() => {
@@ -22,7 +24,23 @@ export default function EventDetailsPage({ events, coupons }: { events: any, cou
     gsap.fromTo('.ed-main', { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power3.out", delay: 1.0 });
   }, [slug]);
 
-  if (!event) return <div className="p-20 text-center">Event not found.</div>;
+  if (!event) {
+    if (isDataLoading) {
+        return (
+            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a', color: '#fff' }}>
+                <div className="loading-spinner" style={{ width: '40px', height: '40px', border: '3px solid rgba(255,100,0,0.3)', borderTopColor: '#ff6400', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                <p style={{ marginTop: '1.5rem', letterSpacing: '2px', fontSize: '0.8rem', opacity: 0.5 }}>LOADING...</p>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+        );
+    }
+    return (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a', padding: '2rem', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '2rem', color: '#fff' }}>EVENT NOT FOUND</h2>
+            <Link to="/" style={{ color: '#ff6400', fontWeight: 800, textDecoration: 'none', border: '1px solid #ff6400', padding: '1rem 2rem', borderRadius: '4px' }}>GO BACK HOME</Link>
+        </div>
+    );
+  }
 
   return (
     <div className="event-detail-page-mad">
@@ -138,7 +156,15 @@ export default function EventDetailsPage({ events, coupons }: { events: any, cou
                           <label className="ed-label">SELECT CATEGORY</label>
                       </div>
                       
-                      <button type="submit" className="ed-submit-btn hover-target">CONFIRM ENTRY</button>
+                      <button type="submit" className="btn-gagner-unique hover-target">
+                          <div className="fragment f1"></div>
+                          <div className="fragment f2"></div>
+                          <div className="fragment f3"></div>
+                          <div className="fragment f4"></div>
+                          <div className="tech-bar t-left"></div>
+                          <div className="tech-bar t-right"></div>
+                          <span>CONFIRM ENTRY</span>
+                      </button>
                   </form>
               </div>
           </div>

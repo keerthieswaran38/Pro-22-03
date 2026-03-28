@@ -5,6 +5,7 @@ const dns = require('dns');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -226,6 +227,64 @@ app.post('/api/participants-batch', async (req, res) => {
         if (data.length > 0) await Participant.insertMany(data);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- BULK EMAIL ---
+app.post('/api/bulk-email', async (req, res) => {
+    try {
+        const { subject, body, recipients } = req.body;
+        if (!subject || !body || !recipients || !recipients.length) {
+            return res.status(400).json({ error: 'Missing subject, body, or recipients' });
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.zoho.in',
+            port: 587,
+            secure: false,
+            auth: {
+                user: 'info@gagnersports.com',
+                pass: 'Rv1S3FRNssun'
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        // Verify SMTP connection first
+        try {
+            await transporter.verify();
+            console.log('\x1b[32m%s\x1b[0m', '✅ SMTP connection verified successfully');
+        } catch (verifyErr) {
+            console.error('\x1b[31m%s\x1b[0m', '❌ SMTP verification failed:', verifyErr.message);
+            return res.status(500).json({ error: 'SMTP connection failed: ' + verifyErr.message });
+        }
+
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+
+        for (const email of recipients) {
+            try {
+                await transporter.sendMail({
+                    from: '"Gagner Sports" <info@gagnersports.com>',
+                    to: email,
+                    subject: subject,
+                    html: body.replace(/\n/g, '<br/>')
+                });
+                console.log(`✅ Email sent to ${email}`);
+                successCount++;
+            } catch (err) {
+                console.error(`❌ Failed to send email to ${email}:`, err.message);
+                errors.push({ email, error: err.message });
+                failCount++;
+            }
+        }
+
+        res.json({ success: true, successCount, failCount, errors });
+    } catch (e) {
+        console.error('Email error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // --- COUPONS ---

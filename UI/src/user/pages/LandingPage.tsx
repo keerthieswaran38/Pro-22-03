@@ -156,88 +156,113 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
         );
     });
 
-    // --- UNIQUE WAVE HERO TEXT ---
-    const heroTl = gsap.timeline();
-    
-    // Fix for overlapping text on navigation back:
-    // If intro is already done (from App.tsx), ensure titles are correctly positioned
-    gsap.set('.hero-title', { y: 0 });
+    // --- EVENT CARD GLOW EFFECT ---
+    const cards = document.querySelectorAll('.event-stack-item');
+    cards.forEach((card: any) => {
+        const glow = card.querySelector('.event-card-glow');
+        if (!glow) return;
 
-    heroTl.fromTo('.hero-title span', 
-        { y: 80, opacity: 0, filter: 'blur(10px)' },
-        { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1.2, stagger: 0.1, ease: "back.out(1.7)", delay: 1 }
-    );
+        const onMouseMove = (e: MouseEvent) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            gsap.to(glow, { 
+                x: x - 150, 
+                y: y - 150, 
+                opacity: 0.6, 
+                duration: 0.6, 
+                ease: "power2.out" 
+            });
+        };
+
+        const onBack = () => {
+            gsap.to(glow, { opacity: 0, duration: 1 });
+        };
+
+        card.addEventListener('mousemove', onMouseMove);
+        card.addEventListener('mouseleave', onBack);
+    });
+
+    // --- HERO ENTRANCE (Precision Scanner Reveal) ---
+    const hasPreloader = document.querySelector('.preloader');
+    const heroTl = gsap.timeline({ delay: hasPreloader ? 2.2 : 0.4 }); 
+    
+    // Initial: Thin, Outlined, and Scattered
+    gsap.set('.hero-title span', { 
+        y: 40, 
+        opacity: 0, 
+        fontWeight: 100,
+        filter: 'blur(10px) brightness(0)',
+        scale: 0.95
+    });
+    
+    heroTl.to('.hero-title span', {
+        y: 0, 
+        opacity: 1, 
+        fontWeight: 900,
+        filter: 'blur(0px) brightness(1)',
+        scale: 1,
+        duration: 1.5, 
+        stagger: 0.1, 
+        ease: "expo.out"
+    });
+
+    // Interactive Hover Glow
+    const heroWrap = document.querySelector('.hero-title');
+    if (heroWrap) {
+        heroWrap.addEventListener('mousemove', (e: any) => {
+            const rect = heroWrap.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width - 0.5;
+            const y = (e.clientY - rect.top) / rect.height - 0.5;
+            gsap.to('.hero-title span', {
+                x: x * 15, y: y * 15, duration: 0.6, ease: "power2.out", stagger: 0.02
+            });
+            // Update individual word tilts
+            gsap.to('.hero-title span:hover', { 
+                scale: 1.05, 
+                textShadow: "0 0 20px rgba(0,255,130,0.5)",
+                duration: 0.3 
+            });
+        });
+        heroWrap.addEventListener('mouseleave', () => {
+             gsap.to('.hero-title span', { x: 0, y: 0, scale: 1, textShadow: "none", duration: 1, ease: "power2.out" });
+        });
+    }
 
     // --- CINEMATIC HERO SLIDESHOW ---
-    const slides = document.querySelectorAll('.hero-slide');
+    const slides = document.querySelectorAll('.hero-visual .hero-slide');
     let slideInterval: any;
     let floatingTl: any;
 
     if (slides.length > 0) {
         let currentSlide = 0;
         const totalSlides = slides.length;
+        gsap.set(slides, { opacity: 0, zIndex: 1, scale: 1.1 });
+        gsap.set(slides[0], { opacity: 1, zIndex: 10, scale: 1 });
 
-        // Reset all slides
-        gsap.set(slides, { display: 'none', opacity: 0, zIndex: 1, scale: 1, clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' });
-        gsap.set(slides[0], { display: 'flex', opacity: 1, zIndex: 10 });
-
-        // Floating Effect for Active Slide
         const startFloating = (el: Element) => {
             if (floatingTl) floatingTl.kill();
             floatingTl = gsap.timeline({ repeat: -1, yoyo: true });
-            floatingTl.to(el, { 
-                scale: 1.05, 
-                duration: 8, 
-                ease: "sine.inOut" 
-            }).to(el, {
-                x: 10,
-                y: -10,
-                duration: 6,
-                ease: "sine.inOut"
-            }, 0);
+            floatingTl.to(el, { scale: 1.05, duration: 8, ease: "sine.inOut" })
+                      .to(el, { x: 10, y: -10, duration: 6, ease: "sine.inOut" }, 0);
         };
+        startFloating(slides[0]);
 
         const nextSlide = () => {
             const next = (currentSlide + 1) % totalSlides;
             const prev = currentSlide;
             const tl = gsap.timeline({
                 onComplete: () => {
-                    gsap.set(slides[prev], { display: 'none', zIndex: 1 });
+                    gsap.set(slides[prev], { zIndex: 1 });
                     startFloating(slides[next]);
                 }
             });
-            
-            // 1. Position next slide BELOW the current one but ready
-            tl.set(slides[next], { 
-                display: 'flex',
-                opacity: 1,
-                zIndex: 20,
-                scale: 1.2,
-                clipPath: 'polygon(100% 0, 100% 0, 100% 100%, 100% 100%)' // Start as a vertical line on the right
-            })
-            // 2. Diagonal Wipe Reveal
-            .to(slides[next], { 
-                clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)',
-                duration: 1.8, 
-                ease: "expo.inOut" 
-            })
-            // 3. Zoom Out to settle
-            .to(slides[next], { 
-                scale: 1, 
-                duration: 2, 
-                ease: "power2.out" 
-            }, "-=1.4")
-            // 4. Subtle fade out of previous (safety)
-            .to(slides[prev], {
-                opacity: 0,
-                duration: 1,
-                ease: "power2.inOut"
-            }, "-=1.8");
-
+            tl.set(slides[next], { opacity: 1, zIndex: 20, scale: 1.2, clipPath: 'polygon(100% 0, 100% 0, 100% 100%, 100% 100%)' })
+              .to(slides[next], { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration: 1.8, ease: "expo.inOut" })
+              .to(slides[next], { scale: 1, duration: 2, ease: "power2.out" }, "-=1.4")
+              .to(slides[prev], { opacity: 0, duration: 1, ease: "power2.inOut" }, "-=1.8");
             currentSlide = next;
         };
-        
-        startFloating(slides[0]);
         slideInterval = setInterval(nextSlide, 6000);
     }
 
@@ -277,7 +302,11 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
 
     return () => {
         if (slideInterval) clearInterval(slideInterval);
-        heroTl.kill();
+        // Clear event card listeners
+        cards.forEach((card: any) => {
+            card.removeEventListener('mousemove', () => {});
+            card.removeEventListener('mouseleave', () => {});
+        });
         // Kill ALL ScrollTriggers and reset pinned elements
         ScrollTrigger.getAll().forEach((t: any) => t.kill(true));
         // Reset services track transform to prevent stale state on re-mount
@@ -306,9 +335,9 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
     <div className="landing-page-mad">
       <section className="hero-brutal">
           <div className="hero-content">
-              <h1 className="hero-title"><span className="primary">WE ENGINEER</span></h1>
+              <h1 className="hero-title"><span>WE</span> <span className="orange">ENGINEER</span></h1>
               <h1 className="hero-title indent"><span className="white">ATHLETIC</span></h1>
-              <h1 className="hero-title"><span className="secondary">EXCELLENCE</span></h1>
+              <h1 className="hero-title"><span className="green">EXCELLENCE</span></h1>
               <div className="hero-footer">
                   <p>05+ YEARS OF ELITE MARATHON MANAGEMENT</p>
                   <div className="scroll-indicator"><div className="line"></div><span>SCROLL</span></div>
@@ -389,7 +418,13 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
                         <div className="ss-info">
                             <h3>{s.title}</h3>
                             <p>{s.desc}</p>
-                            <a href="#contact" className="btn-neon small hover-target">{s.btn}</a>
+                            <a href="#contact" className="btn-services-unique hover-target" style={{ marginTop: '1.5rem' }}>
+                                <div className="wireframe"></div>
+                                <div className="wire-corner tc-tl"></div>
+                                <div className="wire-corner tc-br"></div>
+                                <div className="scanner-line"></div>
+                                <span>{s.btn}</span>
+                            </a>
                         </div>
                     </div>
                 ))}
@@ -407,8 +442,8 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
           <div className="events-stack">
               {(events || []).map((item, idx) => (
                   <div key={idx} className="event-stack-item hover-target">
-                      <div className="esi-img">
-                          <img src={item.bgImg || `/images/${item.slug.replace(/-/g, '_')}.png`} alt={item.title} loading="lazy" style={{ maxWidth: '100%', height: 'auto' }} />
+                      <div className="esi-img" style={{ height: '500px', border: 'none', boxShadow: 'none', background: 'transparent' }}>
+                          <img src={item.bgImg || `/images/${item.slug.replace(/-/g, '_')}.png`} alt={item.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '15px' }} />
                       </div>
                       <div className="esi-content">
                           <div className="esi-meta">
@@ -431,9 +466,17 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
                                   )}
                               </div>
                               
-                              <div className="esi-actions">
-                                  <span className="btn-details-static">DETAILS</span>
-                                  <Link to={`/register/${item.slug}`} className="btn-neon small hover-target solid">BOOK NOW</Link>
+                              <div className="esi-actions" style={{ width: '100%', marginTop: 'auto', display: 'flex', justifyContent: 'flex-start' }}>
+                                  <Link to={`/register/${item.slug}`} className="btn-gagner-unique hover-target">
+                                      <div className="fragment f1"></div>
+                                      <div className="fragment f2"></div>
+                                      <div className="fragment f3"></div>
+                                      <div className="fragment f4"></div>
+                                      <div className="tech-bar t-left"></div>
+                                      <div className="tech-bar t-right"></div>
+                                      <span>BOOK NOW</span>
+                                  </Link>
+                                  <div className="event-card-glow"></div>
                               </div>
                           </div>
                       </div>

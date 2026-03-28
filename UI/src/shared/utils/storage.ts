@@ -146,6 +146,11 @@ export async function saveParticipants(parts: Participant[]): Promise<void> {
   await api.post('/api/participants-batch', parts);
 }
 
+export async function sendBulkEmail(subject: string, body: string, recipients: string[]): Promise<any> {
+  return await api.post('/api/bulk-email', { subject, body, recipients });
+}
+
+
 export interface LeaderboardEntry {
   name: string;
   time: string | null;

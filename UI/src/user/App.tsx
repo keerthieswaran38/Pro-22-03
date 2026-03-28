@@ -26,9 +26,11 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
   const { pathname, hash } = location;
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isIntroDone, setIsIntroDone] = useState(false);
+  const [forceReady, setForceReady] = useState(false); // Safety override
 
   // --- REPLICATION: CURSOR & GSAP GLOBAL ---
   useLayoutEffect(() => {
+    if (typeof gsap === 'undefined') return;
     gsap.registerPlugin(ScrollTrigger);
 
     const cursor = document.querySelector('.cursor') as HTMLElement;
@@ -80,16 +82,33 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
   // --- SPLASH SCREEN TIMER ---
   useEffect(() => {
-    const timer = setTimeout(() => setMinSplashDone(true), 1500);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => setMinSplashDone(true), 5000); // Show intro for 5 seconds
+    
+    // Safety Force-Ready Timeout: 10s max wait for data
+    const safetyTimer = setTimeout(() => {
+        console.warn("Preloader safety timeout triggered - showing fallback UI");
+        setForceReady(true);
+    }, 10000);
+
+    return () => {
+        clearTimeout(timer);
+        clearTimeout(safetyTimer);
+    };
   }, []);
 
   // --- REPLICATION: PRELOADER EXIT & HERO ENTRANCE ---
   useEffect(() => {
-    // Only proceed when data is loaded AND the 1.5s splash period has elapsed
-    if (!loading && minSplashDone && !isIntroDone) {
+    // For non-root pages (e.g. /register), skip splash and dismiss preloader immediately
+    if ((!loading || forceReady) && !isIntroDone && pathname !== '/') {
+        setIsIntroDone(true);
+        setHasInitiallyLoaded(true);
+        return;
+    }
+    // Only proceed when data is loaded (or timed out) AND the splash period has elapsed
+    if ((!loading || forceReady) && minSplashDone && !isIntroDone) {
         if (pathname !== '/') {
             setIsIntroDone(true);
+            setHasInitiallyLoaded(true);
             return;
         }
 
@@ -97,32 +116,18 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
             onComplete: () => setIsIntroDone(true)
         });
 
-        // Hard-synced 300ms fade-out immediately after the 1.5s mark
+        // --- SLIDE UP THE CURTAIN ---
         tl.to('.preloader', {
-            opacity: 0,
-            duration: 0.3,
-            ease: "power2.inOut",
-            onComplete: () => setHasInitiallyLoaded(true)
-        })
-        .to('.hero-title', {
-            y: 0,
-            duration: 1.2,
-            stagger: 0.1,
-            ease: "power4.out"
-        }, "-=0.1") // Snappy overlap with fade
-        .to('.hero-footer', {
-            opacity: 1,
-            duration: 1,
-            ease: "power2.out"
-        }, "-=0.5")
-        .from('.hero-visual', {
-            opacity: 0,
-            x: 80,
-            duration: 1.5,
-            ease: "power4.out"
-        }, "-=1.2");
+            yPercent: -100,
+            duration: 1.2, // Faster slide
+            ease: "expo.inOut",
+            onComplete: () => {
+                setHasInitiallyLoaded(true);
+                setIsIntroDone(true);
+            }
+        });
     }
-  }, [loading, minSplashDone, isIntroDone, pathname]);
+}, [loading, minSplashDone, isIntroDone, pathname]);
 
   // --- SCROLL TO TOP / HASH ON PATH CHANGE ---
   useEffect(() => {
@@ -165,7 +170,7 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
   return (
     <div className="user-world-container" id="smooth-wrapper">
-      {!hasInitiallyLoaded && pathname === '/' && <GlobalPreloader content={contentData} />}
+      {!hasInitiallyLoaded && <GlobalPreloader content={contentData} />}
       <LeaderboardOverlay 
         isOpen={isLeaderboardOpen} 
         onClose={() => setIsLeaderboardOpen(false)} 
