@@ -1,9 +1,10 @@
 import React, { useState, useLayoutEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { GagnerEvent, Participant, saveParticipant } from '../../shared/utils/storage';
-import axios from 'axios';
 import gsap from 'gsap';
-import { API_BASE } from '../../shared/utils/storage';
+
+// PAYMENT: Always use the absolute Render backend URL — never a proxy or relative path.
+const BACKEND_URL = 'https://gagnertest.onrender.com';
 
 interface ParticipantForm {
     name: string;
@@ -170,9 +171,10 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 }))
             });
             
-            // "Use: window.location.href = ...?amount=' + amount + '&orderId=' + orderId + ...;"
             const encodedData = encodeURIComponent(checkoutData);
-            window.location.href = `${API_BASE}/api/payment/initiate?amount=${totalAmount}&orderId=${orderId}&data=${encodedData}`;
+            // Direct navigation to Render backend — bypasses all proxies.
+            // Backend returns an HTML page with a self-submitting form to CC Avenue.
+            window.location.href = `${BACKEND_URL}/api/payment/initiate?amount=${totalAmount}&orderId=${orderId}&data=${encodedData}`;
 
         } catch (err: any) {
             console.error('Payment Error:', err);
