@@ -402,28 +402,23 @@ app.delete('/api/leaderboard/:slug', async (req, res) => {
 // PAYMENT GATEWAY (CC Avenue)
 // ========================
 
-// 1. Payment Initiation
-app.post('/api/payment/initiate', async (req, res) => {
+// 1. Payment Initiation (Receives full page POST from Frontend)
+app.post('/api/payment/initiate', express.urlencoded({ extended: true }), async (req, res) => {
     try {
-        const { eventID, participants, totalAmount, redirectUrl, cancelUrl } = req.body;
+        let payload = req.body;
+        if (req.body.checkoutData) {
+            payload = JSON.parse(req.body.checkoutData);
+        }
+
+        const { eventID, participants, totalAmount } = payload;
         
         if (!participants || !Array.isArray(participants) || participants.length === 0) {
-            return res.status(400).json({ error: 'No participants provided' });
+            return res.status(400).send('No participants provided');
         }
 
         // Generate a bulletproof unique Order ID (prefixed to avoid collision with live site)
         const order_id = `GS${Date.now()}`;
         
-        // Construct CCAvenue standard request string
-        // MASTER KEY SYNC (Hardcoded per user workaround)
-        const merchant_id = '4399469';
-        const access_code = 'AVRB83MH23BQ11BRQB';
-        const working_key = '77CBADC7443F52193CDD382949264C51';
-
-        if (!merchant_id || !access_code || !working_key) {
-            throw new Error('CC Avenue credentials missing');
-        }
-
         // Save all participants as Pending first with the Order ID
         const participantDocs = participants.map(p => ({
             ...p,
@@ -437,6 +432,9 @@ app.post('/api/payment/initiate', async (req, res) => {
         await Participant.insertMany(participantDocs);
 
         // Variables are already hardcoded properly above.
+        const working_key = '77CBADC7443F52193CDD382949264C51';
+        const access_code = 'AVRB83MH23BQ11BRQB';
+        const merchant_id = '4399469';
 
         const requestParams = [
             `merchant_id=${merchant_id}`,
@@ -456,43 +454,39 @@ app.post('/api/payment/initiate', async (req, res) => {
         if (!encRequest) throw new Error("Encryption failed: encRequest is empty");
         console.log("✅ ENCRYPTION SUCCESSFUL. Length:", encRequest.length);
 
-        res.json({
-            success: true,
-            encRequest,
-            access_code,
-            merchant_id,
-            order_id
-        });
+        // Generate the auto-submitting form directly from the backend
+        // This physically places the user's browser on the backend domain, tricking CCAvenue.
+        res.send(`
+            <html>
+                <head>
+                    <title>Secure Payment Gateway</title>
+                    <meta name="referrer" content="origin">
+                    <style>
+                        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #030712; color: #fff; font-family: sans-serif; }
+                    </style>
+                </head>
+                <body>
+                    <div>Redirecting to Secure Payment Gateway...</div>
+                    <form id="ccavForm" action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction" method="POST">
+                        <input type="hidden" name="encRequest" value="${encRequest}">
+                        <input type="hidden" name="access_code" value="${access_code}">
+                        <input type="hidden" name="merchant_id" value="${merchant_id}">
+                    </form>
+                    <script>
+                        // Attempt strict referrer override (if browser permits)
+                        try {
+                            Object.defineProperty(document, "referrer", {get : function(){ return "https://gagnersports.com"; }});
+                        } catch(e) {}
+                        
+                        document.getElementById("ccavForm").submit();
+                    </script>
+                </body>
+            </html>
+        `);
     } catch (e) {
         console.error('PAYMENT INITIATE ERROR:', e.message);
-        res.status(500).json({ error: e.message });
+        res.status(500).send("Server Error: " + e.message);
     }
-});
-
-/**
- * 1.5 Trampoline endpoint: Hides Vercel's Origin by bouncing the browser through Render
- */
-app.post('/api/payment/forward', express.urlencoded({ extended: true }), (req, res) => {
-    const { encRequest, access_code, merchant_id } = req.body;
-    res.send(`
-        <html>
-            <head>
-                <title>Secure Payment Gateway</title>
-                <style>
-                    body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #030712; color: #fff; font-family: sans-serif; }
-                </style>
-            </head>
-            <body>
-                <div>Redirecting to Secure Payment Gateway...</div>
-                <form id="ccavForm" action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction" method="POST">
-                    <input type="hidden" name="encRequest" value="${encRequest}">
-                    <input type="hidden" name="access_code" value="${access_code}">
-                    <input type="hidden" name="merchant_id" value="${merchant_id}">
-                </form>
-                <script>document.getElementById("ccavForm").submit();</script>
-            </body>
-        </html>
-    `);
 });
 
 /**

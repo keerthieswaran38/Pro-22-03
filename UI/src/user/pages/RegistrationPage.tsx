@@ -154,59 +154,35 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
     const handleFinalSubmit = async () => {
         setLoading(true);
         try {
-            // Calculate total amount based on participants
             const totalAmount = participants.reduce((sum, p) => {
                 const cat = event.categories.find(c => c.name === p.category);
                 return sum + (cat ? Number(cat.price) : 0);
             }, 0);
 
-            // 1. Initiate payment on backend
-            const response = await axios.post(`${API_BASE}/api/payment/initiate`, {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `${API_BASE}/api/payment/initiate`;
+            
+            const dataField = document.createElement('input');
+            dataField.type = 'hidden';
+            dataField.name = 'checkoutData';
+            dataField.value = JSON.stringify({
                 eventID: event.slug,
-                participants: participants.map(p => ({
+                participants: participants.map((p) => ({
                     ...p,
-                    city: 'N/A', // or capture city from form
-                    ageGroup: p.age,
+                    ticketCategory: p.category,
                     eventName: event.title,
                 })),
-                totalAmount,
-                redirectUrl: `${window.location.origin}/api/payment/status`, // MUST be absolute URL for CC Avenue
-                cancelUrl: `${window.location.origin}/register/${event.slug}?status=cancelled`
+                totalAmount
             });
+            
+            form.appendChild(dataField);
+            document.body.appendChild(form);
+            form.submit();
 
-            if (response.data.success) {
-                const { encRequest, access_code, merchant_id } = response.data;
-                
-                // 2. Create a hidden form and submit to CCAvenue directly
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction';
-                
-                const fields = [
-                    { name: 'encRequest', value: encRequest },
-                    { name: 'access_code', value: access_code },
-                    { name: 'merchant_id', value: merchant_id }
-                ];
-                
-                fields.forEach(f => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = f.name;
-                    input.value = f.value;
-                    form.appendChild(input);
-                });
-                
-                document.body.appendChild(form);
-                form.submit();
-
-                // User will be redirected to CCAvenue
-            } else {
-                throw new Error('Failed to initiate payment');
-            }
         } catch (err: any) {
             console.error('Payment Error:', err);
-            alert(`Payment initiation failed: ${err.response?.data?.error || err.message || 'Unknown error'}`);
-        } finally {
+            alert(`Payment initiation failed: ${err.message || 'Unknown error'}`);
             setLoading(false);
         }
     };
