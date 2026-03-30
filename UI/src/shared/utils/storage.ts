@@ -93,7 +93,8 @@ export interface ContentBlock {
 // ========================
 
 // Handle API Base URL for local/production
-export const API_BASE = (import.meta as any).env.VITE_API_URL || '';
+export const API_BASE = (import.meta as any).env.VITE_API_URL || 
+  (window.location.hostname !== 'localhost' ? 'https://gagnertest.onrender.com' : '');
 
 const api = {
   get: async (url: string) => {
