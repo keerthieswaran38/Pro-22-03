@@ -1,12 +1,14 @@
 /**
  * Central API Configuration for Gagner Sports
- * Handles switching between local development and production (Render).
+ * 
+ * In PRODUCTION (Vercel): Uses relative URLs like /api/events
+ *   → Vercel rewrites proxy these to https://gagnertest.onrender.com/api/events
+ *   → Zero CORS issues!
+ * 
+ * In LOCAL DEV: Vite proxy forwards /api to localhost:5000
+ *   → Also zero CORS issues!
  */
 
-const IS_PROD = window.location.hostname !== 'localhost';
-const RENDER_URL = 'https://gagnertest.onrender.com'; // Use your confirmed backend URL
+export const API_BASE = (import.meta as any).env.VITE_API_URL || '';
 
-export const API_BASE = (import.meta as any).env.VITE_API_URL || 
-    (IS_PROD ? RENDER_URL : '');
-
-console.log(`🚀 [API CONFIG] Targeting Backend: ${API_BASE || 'Local Proxy'}`);
+console.log(`🚀 [API CONFIG] Mode: ${API_BASE ? 'Direct (' + API_BASE + ')' : 'Proxy (Vercel/Vite)'}`);
