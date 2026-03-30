@@ -82,13 +82,13 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
   // --- SPLASH SCREEN TIMER ---
   useEffect(() => {
-    const timer = setTimeout(() => setMinSplashDone(true), 5000); // Show intro for 5 seconds
+    const timer = setTimeout(() => setMinSplashDone(true), 2500); // Reduce splash wait to 2.5s
     
-    // Safety Force-Ready Timeout: 10s max wait for data
+    // Safety Force-Ready Timeout: 4s max wait for data
     const safetyTimer = setTimeout(() => {
-        console.warn("Preloader safety timeout triggered - showing fallback UI");
+        console.warn("Preloader safety timeout triggered - forcing app to load");
         setForceReady(true);
-    }, 10000);
+    }, 4000);
 
     return () => {
         clearTimeout(timer);

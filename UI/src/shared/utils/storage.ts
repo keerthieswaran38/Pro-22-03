@@ -103,25 +103,40 @@ if ((import.meta as any).env.PROD) {
 const api = {
   get: async (url: string) => {
     const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
-    const res = await fetch(fullUrl);
-    if (!res.ok) throw new Error(`GET ${fullUrl} failed`);
-    return await res.json();
+    try {
+      const res = await fetch(fullUrl);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      return await res.json();
+    } catch (err: any) {
+      console.error(`❌ GET ${fullUrl} failed:`, err.message);
+      throw err;
+    }
   },
   post: async (url: string, data: any) => {
     const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
-    const res = await fetch(fullUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error(`POST ${fullUrl} failed`);
-    return await res.json();
+    try {
+      const res = await fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      return await res.json();
+    } catch (err: any) {
+      console.error(`❌ POST ${fullUrl} failed:`, err.message);
+      throw err;
+    }
   },
   del: async (url: string) => {
     const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
-    const res = await fetch(fullUrl, { method: 'DELETE' });
-    if (!res.ok) throw new Error(`DELETE ${fullUrl} failed`);
-    return await res.json();
+    try {
+      const res = await fetch(fullUrl, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      return await res.json();
+    } catch (err: any) {
+      console.error(`❌ DELETE ${fullUrl} failed:`, err.message);
+      throw err;
+    }
   }
 };
 
