@@ -170,7 +170,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                     eventName: event.title,
                 })),
                 totalAmount,
-                redirectUrl: `${API_BASE}/api/payment/status`, // CCAvenue posts back to our backend
+                redirectUrl: `${window.location.origin}/api/payment/status`, // MUST be absolute URL for CC Avenue
                 cancelUrl: `${window.location.origin}/register/${event.slug}?status=cancelled`
             });
 
