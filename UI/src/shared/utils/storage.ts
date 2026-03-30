@@ -52,6 +52,10 @@ export interface Participant {
   eventName: string;
   category: string;
   paymentStatus: 'Paid' | 'Pending' | 'Failed';
+  isPaid: boolean;
+  orderId?: string;
+  transactionId?: string;
+  tracking_id?: string;
   registeredAt: string;
 }
 
@@ -88,24 +92,30 @@ export interface ContentBlock {
 // API HELPERS (WITH DEBUGGING)
 // ========================
 
+// Handle API Base URL for local/production
+export const API_BASE = (import.meta as any).env.VITE_API_URL || '';
+
 const api = {
   get: async (url: string) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`GET ${url} failed`);
+    const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+    const res = await fetch(fullUrl);
+    if (!res.ok) throw new Error(`GET ${fullUrl} failed`);
     return await res.json();
   },
   post: async (url: string, data: any) => {
-    const res = await fetch(url, {
+    const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+    const res = await fetch(fullUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error(`POST ${url} failed`);
+    if (!res.ok) throw new Error(`POST ${fullUrl} failed`);
     return await res.json();
   },
   del: async (url: string) => {
-    const res = await fetch(url, { method: 'DELETE' });
-    if (!res.ok) throw new Error(`DELETE ${url} failed`);
+    const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+    const res = await fetch(fullUrl, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`DELETE ${fullUrl} failed`);
     return await res.json();
   }
 };
@@ -116,7 +126,7 @@ const api = {
 export async function uploadImage(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('image', file);
-  const res = await fetch('/api/upload', { method: 'POST', body: formData });
+  const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: formData });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Upload failed' }));
     throw new Error(err.error || 'Upload failed');
@@ -200,7 +210,7 @@ export async function createDMSItem(type: string, item: Partial<ContentBlock>): 
 }
 
 export async function updateDMSItem(type: string, id: string, item: Partial<ContentBlock>): Promise<ContentBlock> {
-  const res = await fetch(`/api/dms/${type}/${id}`, {
+  const res = await fetch(`${API_BASE}/api/dms/${type}/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(item)
