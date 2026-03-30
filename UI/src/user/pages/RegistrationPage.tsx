@@ -177,12 +177,10 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
             if (response.data.success) {
                 const { encRequest, access_code, merchant_id } = response.data;
                 
-                // 2. Create a hidden form and submit to the Render Trampoline Endpoint
-                // This forces the user's browser to physically land on Render's domain,
-                // completely replacing the Vercel Origin with Render's Origin to bypass CC Avenue's domain check.
+                // 2. Create a hidden form and submit to CCAvenue directly
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = 'https://gagnertest.onrender.com/api/payment/forward';
+                form.action = 'https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction';
                 
                 const fields = [
                     { name: 'encRequest', value: encRequest },

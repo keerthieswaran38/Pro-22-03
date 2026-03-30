@@ -192,14 +192,26 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 }
 
 export default function UserApp() {
-  const { data: events = {}, isLoading: evLoading } = useEvents();
-  const { data: coupons = [], isLoading: cpLoading } = useCoupons();
-  const { data: leaderboard = {}, isLoading: lbLoading } = useLeaderboard();
-  const { data: rawContent = [], isLoading: contentLoading } = useCMSContent();
+  const [dataTimeout, setDataTimeout] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDataTimeout(true);
+    }, 6000); // 6-second hard limit
+    return () => clearTimeout(timer);
+  }, []);
+
+  const { data: events = {}, isLoading: evLoading, error: evError } = useEvents();
+  const { data: coupons = [], isLoading: cpLoading, error: cpError } = useCoupons();
+  const { data: leaderboard = {}, isLoading: lbLoading, error: lbError } = useLeaderboard();
+  const { data: rawContent = [], isLoading: contentLoading, error: contentError } = useCMSContent();
+  
   const contentData = rawContent.filter((c: any) => c.active).sort((a: any, b: any) => a.order - b.order);
 
-  // Show preloader while initial data is fetching
-  const isInitialLoading = evLoading || cpLoading || lbLoading || contentLoading;
+  // Show preloader while initial data is fetching, unless it times out
+  const isStillLoading = evLoading || cpLoading || lbLoading || contentLoading;
+  const isInitialLoading = !dataTimeout && isStillLoading;
+  const hasError = dataTimeout && isStillLoading; // Show error if timeout happened but still loading
 
   // Filter events: only show events that are Open (registrationOpen) and not drafts
   const activeEvents = Object.entries(events)
@@ -212,6 +224,11 @@ export default function UserApp() {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      {hasError && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: 'red', color: 'white', zIndex: 99999, padding: '10px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold' }}>
+              ⚠️ Unable to load live database. Showing local fallback data.
+          </div>
+      )}
       <UserLayout loading={isInitialLoading} events={activeEventsList} leaderboard={leaderboard} contentData={contentData}>
         <Suspense fallback={<div className="suspense-loader" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#030712', color: '#fff' }}>LOADING...</div>}>
           <Routes>

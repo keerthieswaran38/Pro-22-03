@@ -93,8 +93,8 @@ export interface ContentBlock {
 // ========================
 
 // Import centralized API config
-import { API_BASE as _API_BASE } from '../../api/config';
-export const API_BASE = _API_BASE;
+import API_BASE_URL from '../../config/api';
+export const API_BASE = API_BASE_URL;
 
 const api = {
   get: async (url: string) => {
