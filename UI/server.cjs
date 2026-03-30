@@ -398,28 +398,22 @@ app.delete('/api/leaderboard/:slug', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ========================
-// PAYMENT GATEWAY (CC Avenue)
-// ========================
-
-// 1. Payment Initiation (Receives full page POST from Frontend)
-app.post('/api/payment/initiate', express.urlencoded({ extended: true }), async (req, res) => {
+// 1. Payment Initiation (Receives full page GET from Frontend)
+app.get('/api/payment/initiate', async (req, res) => {
     try {
-        let payload = req.body;
-        if (req.body.checkoutData) {
-            payload = JSON.parse(req.body.checkoutData);
-        }
-
+        if (!req.query.data) return res.status(400).send("No checkout data provided in URL");
+        
+        const payload = JSON.parse(req.query.data);
         const { eventID, participants, totalAmount } = payload;
         
         if (!participants || !Array.isArray(participants) || participants.length === 0) {
             return res.status(400).send('No participants provided');
         }
 
-        // Generate a bulletproof unique Order ID (prefixed to avoid collision with live site)
+        // Generate a bulletproof unique Order ID
         const order_id = `GS${Date.now()}`;
         
-        // Save all participants as Pending first with the Order ID
+        // Save participants as Pending
         const participantDocs = participants.map(p => ({
             ...p,
             eventSlug: eventID,
@@ -436,11 +430,15 @@ app.post('/api/payment/initiate', express.urlencoded({ extended: true }), async 
         const access_code = 'AVRB83MH23BQ11BRQB';
         const merchant_id = '4399469';
 
+        // CC Avenue strictly requires amount > 0 and typically in decimal format.
+        // A generic amount=0 completely breaks CC Avenue parsing resulting in "Working Key is empty"
+        const finalAmount = Number(totalAmount) > 0 ? Number(totalAmount).toFixed(2) : "1.00";
+
         const requestParams = [
             `merchant_id=${merchant_id}`,
             `order_id=${order_id}`,
             `currency=INR`,
-            `amount=${totalAmount}`,
+            `amount=${finalAmount}`,
             `redirect_url=https://gagnertest.onrender.com/api/payment/status`,
             `cancel_url=https://gagnertest.onrender.com/api/payment/status`,
             `language=EN`
@@ -454,31 +452,19 @@ app.post('/api/payment/initiate', express.urlencoded({ extended: true }), async 
         if (!encRequest) throw new Error("Encryption failed: encRequest is empty");
         console.log("✅ ENCRYPTION SUCCESSFUL. Length:", encRequest.length);
 
-        // Generate the auto-submitting form directly from the backend
-        // This physically places the user's browser on the backend domain, tricking CCAvenue.
+        // The user explicitly requested this exact form identifier structure
         res.send(`
             <html>
-                <head>
-                    <title>Secure Payment Gateway</title>
-                    <meta name="referrer" content="origin">
-                    <style>
-                        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #030712; color: #fff; font-family: sans-serif; }
-                    </style>
-                </head>
-                <body>
-                    <div>Redirecting to Secure Payment Gateway...</div>
-                    <form id="ccavForm" action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction" method="POST">
+                <head><title>Redirecting to Payment...</title></head>
+                <body style="background: #030712; color: white;">
+                    <h3>Redirecting to Secure Payment Gateway...</h3>
+                    <form id="nonseamless" method="post" name="redirect" action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction">
                         <input type="hidden" name="encRequest" value="${encRequest}">
                         <input type="hidden" name="access_code" value="${access_code}">
                         <input type="hidden" name="merchant_id" value="${merchant_id}">
                     </form>
                     <script>
-                        // Attempt strict referrer override (if browser permits)
-                        try {
-                            Object.defineProperty(document, "referrer", {get : function(){ return "https://gagnersports.com"; }});
-                        } catch(e) {}
-                        
-                        document.getElementById("ccavForm").submit();
+                        document.redirect.submit();
                     </script>
                 </body>
             </html>

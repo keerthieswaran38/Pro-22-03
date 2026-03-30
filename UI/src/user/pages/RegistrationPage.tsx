@@ -159,14 +159,8 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 return sum + (cat ? Number(cat.price) : 0);
             }, 0);
 
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `${API_BASE}/api/payment/initiate`;
-            
-            const dataField = document.createElement('input');
-            dataField.type = 'hidden';
-            dataField.name = 'checkoutData';
-            dataField.value = JSON.stringify({
+            // "In the frontend, instead of axios.post, use window.location.href"
+            const checkoutData = JSON.stringify({
                 eventID: event.slug,
                 participants: participants.map((p) => ({
                     ...p,
@@ -176,9 +170,9 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 totalAmount
             });
             
-            form.appendChild(dataField);
-            document.body.appendChild(form);
-            form.submit();
+            // Encode the JSON and redirect via GET
+            const encodedData = encodeURIComponent(checkoutData);
+            window.location.href = `${API_BASE}/api/payment/initiate?data=${encodedData}`;
 
         } catch (err: any) {
             console.error('Payment Error:', err);
