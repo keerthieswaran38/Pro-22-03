@@ -12,10 +12,21 @@ const ccav = require('./ccavUtils.cjs');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-    origin: true, // Automatically allow the source origin (Vercel/Local)
-    credentials: true
-}));
+// --- MANUAL CORS HEADERS (Nuke Fix) ---
+app.use((req, res, next) => {
+    const origin = req.header('Origin');
+    if (origin && (origin.includes('vercel.app') || origin.includes('localhost'))) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    if (req.method === 'OPTIONS') return res.sendStatus(200);
+    next();
+});
 app.use(express.json({ limit: '10mb' }));
 
 // --- CLOUDINARY CONFIG ---
