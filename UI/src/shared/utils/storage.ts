@@ -92,13 +92,9 @@ export interface ContentBlock {
 // API HELPERS (WITH DEBUGGING)
 // ========================
 
-// Handle API Base URL for local/production
-export const API_BASE = (import.meta as any).env.VITE_API_URL || 
-  (window.location.hostname !== 'localhost' ? 'https://gagnertest.onrender.com' : '');
-
-if ((import.meta as any).env.PROD) {
-  console.log('🔗 PROD API connected to:', API_BASE);
-}
+// Import centralized API config
+import { API_BASE as _API_BASE } from '../../api/config';
+export const API_BASE = _API_BASE;
 
 const api = {
   get: async (url: string) => {
