@@ -112,22 +112,25 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
             return;
         }
 
-        const tl = gsap.timeline({
-            onComplete: () => setIsIntroDone(true)
-        });
+        const tl = gsap.timeline();
 
-        // --- SLIDE UP THE CURTAIN ---
+        // 1. Immediately allow the app to be interactive (behind the curtain)
+        setHasInitiallyLoaded(true);
+
+        // 2. Slide the curtain
         tl.to('.preloader', {
             yPercent: -100,
-            duration: 1.2, // Faster slide
+            duration: 1.2,
             ease: "expo.inOut",
             onComplete: () => {
-                setHasInitiallyLoaded(true);
                 setIsIntroDone(true);
             }
         });
+
+        // 3. Fallback: If the animation doesn't move/is stuck, force-complete intro
+        setTimeout(() => setIsIntroDone(true), 1500);
     }
-}, [loading, minSplashDone, isIntroDone, pathname]);
+}, [loading, minSplashDone, isIntroDone, pathname, forceReady]);
 
   // --- SCROLL TO TOP / HASH ON PATH CHANGE ---
   useEffect(() => {
