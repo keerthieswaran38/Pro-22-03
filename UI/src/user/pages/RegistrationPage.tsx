@@ -159,20 +159,20 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 return sum + (cat ? Number(cat.price) : 0);
             }, 0);
 
-            // "In the frontend, instead of axios.post, use window.location.href"
+            const orderId = `GS${Date.now()}`;
+
             const checkoutData = JSON.stringify({
                 eventID: event.slug,
                 participants: participants.map((p) => ({
                     ...p,
                     ticketCategory: p.category,
                     eventName: event.title,
-                })),
-                totalAmount
+                }))
             });
             
-            // Encode the JSON and redirect via GET
+            // "Use: window.location.href = ...?amount=' + amount + '&orderId=' + orderId + ...;"
             const encodedData = encodeURIComponent(checkoutData);
-            window.location.href = `${API_BASE}/api/payment/initiate?data=${encodedData}`;
+            window.location.href = `${API_BASE}/api/payment/initiate?amount=${totalAmount}&orderId=${orderId}&data=${encodedData}`;
 
         } catch (err: any) {
             console.error('Payment Error:', err);

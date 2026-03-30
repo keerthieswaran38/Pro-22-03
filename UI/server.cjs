@@ -398,26 +398,24 @@ app.delete('/api/leaderboard/:slug', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 1. Payment Initiation (Receives full page GET from Frontend)
 app.get('/api/payment/initiate', async (req, res) => {
     try {
-        if (!req.query.data) return res.status(400).send("No checkout data provided in URL");
+        const { amount, orderId, data } = req.query;
+
+        if (!data || !amount || !orderId) return res.status(400).send("Missing query parameters");
         
-        const payload = JSON.parse(req.query.data);
-        const { eventID, participants, totalAmount } = payload;
+        const payload = JSON.parse(data);
+        const { eventID, participants } = payload;
         
         if (!participants || !Array.isArray(participants) || participants.length === 0) {
             return res.status(400).send('No participants provided');
         }
 
-        // Generate a bulletproof unique Order ID
-        const order_id = `GS${Date.now()}`;
-        
         // Save participants as Pending
         const participantDocs = participants.map(p => ({
             ...p,
             eventSlug: eventID,
-            orderId: order_id,
+            orderId: orderId,
             paymentStatus: 'Pending',
             isPaid: false,
             registeredAt: new Date().toISOString()
@@ -425,18 +423,15 @@ app.get('/api/payment/initiate', async (req, res) => {
         
         await Participant.insertMany(participantDocs);
 
-        // Variables are already hardcoded properly above.
         const working_key = '77CBADC7443F52193CDD382949264C51';
         const access_code = 'AVRB83MH23BQ11BRQB';
         const merchant_id = '4399469';
 
-        // CC Avenue strictly requires amount > 0 and typically in decimal format.
-        // A generic amount=0 completely breaks CC Avenue parsing resulting in "Working Key is empty"
-        const finalAmount = Number(totalAmount) > 0 ? Number(totalAmount).toFixed(2) : "1.00";
+        const finalAmount = Number(amount) > 0 ? Number(amount).toFixed(2) : "1.00";
 
         const requestParams = [
             `merchant_id=${merchant_id}`,
-            `order_id=${order_id}`,
+            `order_id=${orderId}`,
             `currency=INR`,
             `amount=${finalAmount}`,
             `redirect_url=https://gagnertest.onrender.com/api/payment/status`,
@@ -452,20 +447,16 @@ app.get('/api/payment/initiate', async (req, res) => {
         if (!encRequest) throw new Error("Encryption failed: encRequest is empty");
         console.log("✅ ENCRYPTION SUCCESSFUL. Length:", encRequest.length);
 
-        // The user explicitly requested this exact form identifier structure
+        // The user explicitly requested this exact form structure with ONLY 2 hidden inputs.
         res.send(`
             <html>
-                <head><title>Redirecting to Payment...</title></head>
+                <head><title>Processing Payment...</title></head>
                 <body style="background: #030712; color: white;">
-                    <h3>Redirecting to Secure Payment Gateway...</h3>
-                    <form id="nonseamless" method="post" name="redirect" action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction">
-                        <input type="hidden" name="encRequest" value="${encRequest}">
-                        <input type="hidden" name="access_code" value="${access_code}">
-                        <input type="hidden" name="merchant_id" value="${merchant_id}">
+                    <form action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction" method="POST">
+                        <input type="hidden" name="encRequest" value="${encRequest}" />
+                        <input type="hidden" name="access_code" value="${access_code}" />
                     </form>
-                    <script>
-                        document.redirect.submit();
-                    </script>
+                    <script>document.forms[0].submit();</script>
                 </body>
             </html>
         `);
