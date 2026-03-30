@@ -29,6 +29,20 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: '10mb' }));
 
+// --- HEALTH CHECK (verify server is alive) ---
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'alive',
+        db: isFallbackMode ? 'fallback' : 'mongodb',
+        timestamp: new Date().toISOString(),
+        env: {
+            MONGODB_URI: process.env.MONGODB_URI ? '✅ SET' : '❌ MISSING',
+            CLOUDINARY: process.env.CLOUDINARY_CLOUD_NAME ? '✅ SET' : '❌ MISSING',
+            CCAV: process.env.CCAV_MERCHANT_ID ? '✅ SET' : '❌ MISSING'
+        }
+    });
+});
+
 // --- CLOUDINARY CONFIG ---
 const cloudinaryConfigured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
     && process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloud_name');
@@ -84,8 +98,12 @@ function loadFallbackData() {
 async function connectDB(retries = 3) {
     const uri = process.env.MONGODB_URI;
     if (!uri) {
-        console.error('\x1b[31m%s\x1b[0m', '❌ FATAL: MONGODB_URI not found in .env file. Server cannot start without a database.');
-        process.exit(1);
+        console.error('\x1b[31m%s\x1b[0m', '❌ WARNING: MONGODB_URI not found in environment variables.');
+        console.warn('\x1b[33m%s\x1b[0m', '⚠️  Server will start in FALLBACK MODE with local data.');
+        console.warn('\x1b[33m%s\x1b[0m', '💡 Add MONGODB_URI to Render Environment Variables to connect to Atlas.');
+        isFallbackMode = true;
+        loadFallbackData();
+        return;
     }
 
     for (let i = 1; i <= retries; i++) {
