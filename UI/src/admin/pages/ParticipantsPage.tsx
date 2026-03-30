@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Tag, Space, Input, Select, Typography, Card, message, Popconfirm, Skeleton, Drawer, Descriptions } from 'antd';
-import { TeamOutlined, SearchOutlined, DownloadOutlined, DeleteOutlined, FilterOutlined, UserOutlined } from '@ant-design/icons';
-import { Participant, getParticipants, saveParticipants } from '../../shared/utils/storage';
+import { Table, Button, Tag, Space, Input, Select, Typography, Card, message, Popconfirm, Skeleton, Drawer, Descriptions, Modal } from 'antd';
+import { TeamOutlined, SearchOutlined, DownloadOutlined, DeleteOutlined, FilterOutlined, UserOutlined, MailOutlined } from '@ant-design/icons';
+import { Participant, getParticipants, saveParticipants, sendBulkEmail } from '../../shared/utils/storage';
 import { logAction } from '../../shared/utils/auditLog';
 import { COLOR_PRIMARY, getPalette } from '../../shared/theme';
 import { useThemeMode } from '../App';
@@ -20,8 +20,14 @@ export default function ParticipantsPage() {
   const [genderFilter, setGenderFilter] = useState('');
   const [ageFilter, setAgeFilter] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
+  const [eventFilter, setEventFilter] = useState('');
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
+
+  const [emailModalVisible, setEmailModalVisible] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     getParticipants().then(data => {
@@ -32,6 +38,7 @@ export default function ParticipantsPage() {
 
   const cities = useMemo(() => [...new Set((participants || []).map((p: Participant) => p.city))].sort(), [participants]);
   const ageGroups = useMemo(() => [...new Set((participants || []).map((p: Participant) => p.ageGroup))].sort(), [participants]);
+  const eventNames = useMemo(() => [...new Set((participants || []).map((p: Participant) => p.eventName))].sort(), [participants]);
 
   const filtered = useMemo(() => (participants || []).filter(p => {
     if (searchText) {
@@ -42,8 +49,9 @@ export default function ParticipantsPage() {
     if (genderFilter && p.gender !== genderFilter) return false;
     if (ageFilter && p.ageGroup !== ageFilter) return false;
     if (paymentFilter && p.paymentStatus !== paymentFilter) return false;
+    if (eventFilter && p.eventName !== eventFilter) return false;
     return true;
-  }), [participants, searchText, cityFilter, genderFilter, ageFilter, paymentFilter]);
+  }), [participants, searchText, cityFilter, genderFilter, ageFilter, paymentFilter, eventFilter]);
 
   const exportToExcel = () => {
     const rows = (selectedRowKeys.length > 0 ? filtered.filter(p => selectedRowKeys.includes(p.id)) : filtered)
@@ -87,8 +95,38 @@ export default function ParticipantsPage() {
     }
   };
 
+  const handleBulkEmail = async () => {
+    if (!emailSubject || !emailBody) {
+      return message.warning('Please enter subject and body');
+    }
+    const recipientsObj = selectedRowKeys.length > 0
+      ? filtered.filter(p => selectedRowKeys.includes(p.id))
+      : filtered;
+    
+    const rawEmails = recipientsObj.map(p => p.email);
+    const validEmails = [...new Set(rawEmails.filter(e => e && e.includes('@')))];
+
+    if (validEmails.length === 0) {
+      return message.warning('No valid emails found in your selection.');
+    }
+
+    setSendingEmail(true);
+    try {
+      const res = await sendBulkEmail(emailSubject, emailBody, validEmails);
+      message.success(`Sent successfully to ${res.successCount} users (${res.failCount} failed)`);
+      setEmailModalVisible(false);
+      setEmailSubject('');
+      setEmailBody('');
+      logAction('BULK_EMAIL_SENT', 'Participants', `Sent to ${res.successCount} recipients, Subject: ${emailSubject}`);
+    } catch (err: any) {
+      message.error(err.message || 'Failed to send bulk email');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const clearFilters = () => {
-    setSearchText(''); setCityFilter(''); setGenderFilter(''); setAgeFilter(''); setPaymentFilter('');
+    setSearchText(''); setCityFilter(''); setGenderFilter(''); setAgeFilter(''); setPaymentFilter(''); setEventFilter('');
   };
 
   const columns: any[] = [
@@ -137,10 +175,14 @@ export default function ParticipantsPage() {
             <Space>
               <Button type="link" size="small" onClick={() => setSelectedRowKeys([])} style={{ color: pal.textMuted }}>Clear Selection</Button>
               <Button icon={<TeamOutlined />} onClick={bulkMarkPaid} ghost style={{ color: pal.text, borderColor: pal.border, height: 38, fontWeight: 700 }}>MARK AS PAID</Button>
+              <Button icon={<MailOutlined />} onClick={() => setEmailModalVisible(true)} ghost style={{ color: pal.text, borderColor: pal.border, height: 38, fontWeight: 700 }}>BULK EMAIL</Button>
               <Popconfirm title={`Delete ${selectedRowKeys.length} items?`} onConfirm={bulkDelete} okText="Delete" okButtonProps={{ danger: true }}>
                 <Button icon={<DeleteOutlined />} danger style={{ height: 38, fontWeight: 700 }} />
               </Popconfirm>
             </Space>
+          )}
+          {selectedRowKeys.length === 0 && (
+            <Button icon={<MailOutlined />} onClick={() => setEmailModalVisible(true)} ghost style={{ color: pal.text, borderColor: pal.border, height: 38, fontWeight: 700 }}>EMAIL ALL LISTED</Button>
           )}
           <Button icon={<DownloadOutlined />} className="btn-brand-gradient" onClick={exportToExcel}
             style={{ height: 38, fontWeight: 700, letterSpacing: '0.5px', paddingInline: 16, fontSize: '0.8rem' }}>EXPORT EXCEL</Button>
@@ -159,9 +201,23 @@ export default function ParticipantsPage() {
             options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }, { value: 'Other', label: 'Other' }]} />
           <Select placeholder="Age" value={ageFilter || undefined} onChange={(v) => setAgeFilter(v || '')} allowClear style={{ width: 100 }} size="small"
             options={ageGroups.map((a: string) => ({ value: a, label: a }))} />
+          <Select 
+            placeholder="Event" 
+            value={eventFilter || undefined} 
+            onChange={(v) => setEventFilter(v || '')} 
+            allowClear 
+            style={{ width: 220 }} 
+            size="small"
+            showSearch
+            optionFilterProp="label"
+            options={eventNames.map((e: string) => ({ 
+              value: e, 
+              label: `${e} (${(participants || []).filter(p => p.eventName === e).length})` 
+            }))} 
+          />
           <Select placeholder="Payment" value={paymentFilter || undefined} onChange={(v) => setPaymentFilter(v || '')} allowClear style={{ width: 100 }} size="small"
             options={[{ value: 'Paid', label: 'Paid' }, { value: 'Pending', label: 'Pending' }, { value: 'Failed', label: 'Failed' }]} />
-          {(searchText || cityFilter || genderFilter || ageFilter || paymentFilter) && (
+          {(searchText || cityFilter || genderFilter || ageFilter || paymentFilter || eventFilter) && (
             <Button type="link" size="small" onClick={clearFilters} style={{ color: COLOR_PRIMARY, fontSize: '0.75rem' }}>Clear All</Button>
           )}
         </Space>
@@ -245,6 +301,52 @@ export default function ParticipantsPage() {
           </div>
         )}
       </Drawer>
+
+      <Modal
+        title={<span style={{ fontWeight: 800, fontSize: '1.2rem' }}><MailOutlined style={{ marginRight: 8, color: COLOR_PRIMARY }} />Send Bulk Email</span>}
+        open={emailModalVisible}
+        onCancel={() => setEmailModalVisible(false)}
+        onOk={handleBulkEmail}
+        confirmLoading={sendingEmail}
+        okText="Send Email"
+        okButtonProps={{ className: 'btn-brand-gradient' }}
+        cancelButtonProps={{ style: { fontWeight: 600 } }}
+        destroyOnClose
+        width={600}
+        styles={{ 
+          content: { background: pal.card, borderColor: pal.border },
+          header: { background: pal.card, borderBottom: `1px solid ${pal.border}` },
+          body: { paddingTop: 20 }
+        }}
+      >
+        <div style={{ marginBottom: 20 }}>
+          <Text style={{ color: pal.textMuted, fontSize: '0.95rem' }}>
+            Sending email to: <strong style={{ color: pal.text, background: pal.inputBg, padding: '4px 8px', borderRadius: 4 }}>
+              {selectedRowKeys.length > 0 ? selectedRowKeys.length : filtered.length} participants
+            </strong>
+          </Text>
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <Text strong style={{ color: pal.text }}>Subject</Text>
+          <Input 
+            placeholder="e.g. Important Update for Marathon 2024" 
+            value={emailSubject} 
+            onChange={(e) => setEmailSubject(e.target.value)} 
+            style={{ marginTop: 8, background: pal.inputBg, borderColor: pal.border, color: pal.text }}
+            size="large"
+          />
+        </div>
+        <div>
+          <Text strong style={{ color: pal.text }}>Message Body</Text>
+          <Input.TextArea 
+            placeholder="Write your email content here... (HTML tags will be rendered as plain text in this view, but will work in the email)" 
+            rows={8} 
+            value={emailBody} 
+            onChange={(e) => setEmailBody(e.target.value)} 
+            style={{ marginTop: 8, background: pal.inputBg, borderColor: pal.border, color: pal.text }}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

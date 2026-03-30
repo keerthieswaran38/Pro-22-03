@@ -5,13 +5,43 @@ const dns = require('dns');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
+const ccav = require('./ccavUtils.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// --- MANUAL CORS HEADERS (Nuke Fix) ---
+app.use((req, res, next) => {
+    const origin = req.header('Origin');
+    if (origin && (origin.includes('vercel.app') || origin.includes('localhost'))) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    if (req.method === 'OPTIONS') return res.sendStatus(200);
+    next();
+});
 app.use(express.json({ limit: '10mb' }));
+
+// --- HEALTH CHECK (verify server is alive) ---
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'alive',
+        db: isFallbackMode ? 'fallback' : 'mongodb',
+        timestamp: new Date().toISOString(),
+        env: {
+            MONGODB_URI: process.env.MONGODB_URI ? '✅ SET' : '❌ MISSING',
+            CLOUDINARY: process.env.CLOUDINARY_CLOUD_NAME ? '✅ SET' : '❌ MISSING',
+            CCAV: process.env.CCAV_MERCHANT_ID ? '✅ SET' : '❌ MISSING'
+        }
+    });
+});
 
 // --- CLOUDINARY CONFIG ---
 const cloudinaryConfigured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
@@ -68,8 +98,12 @@ function loadFallbackData() {
 async function connectDB(retries = 3) {
     const uri = process.env.MONGODB_URI;
     if (!uri) {
-        console.error('\x1b[31m%s\x1b[0m', '❌ FATAL: MONGODB_URI not found in .env file. Server cannot start without a database.');
-        process.exit(1);
+        console.error('\x1b[31m%s\x1b[0m', '❌ WARNING: MONGODB_URI not found in environment variables.');
+        console.warn('\x1b[33m%s\x1b[0m', '⚠️  Server will start in FALLBACK MODE with local data.');
+        console.warn('\x1b[33m%s\x1b[0m', '💡 Add MONGODB_URI to Render Environment Variables to connect to Atlas.');
+        isFallbackMode = true;
+        loadFallbackData();
+        return;
     }
 
     for (let i = 1; i <= retries; i++) {
@@ -129,6 +163,10 @@ const participantSchema = new mongoose.Schema({
     city: String, gender: String, ageGroup: String, age: String, tshirtSize: String,
     eventSlug: String, eventName: String, category: String,
     paymentStatus: { type: String, enum: ['Paid', 'Pending', 'Failed'], default: 'Pending' },
+    isPaid: { type: Boolean, default: false },
+    orderId: String,
+    transactionId: String,
+    tracking_id: String,
     registeredAt: { type: String, default: () => new Date().toISOString() }
 });
 
@@ -228,6 +266,64 @@ app.post('/api/participants-batch', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- BULK EMAIL ---
+app.post('/api/bulk-email', async (req, res) => {
+    try {
+        const { subject, body, recipients } = req.body;
+        if (!subject || !body || !recipients || !recipients.length) {
+            return res.status(400).json({ error: 'Missing subject, body, or recipients' });
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.zoho.in',
+            port: 587,
+            secure: false,
+            auth: {
+                user: 'info@gagnersports.com',
+                pass: 'Rv1S3FRNssun'
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        // Verify SMTP connection first
+        try {
+            await transporter.verify();
+            console.log('\x1b[32m%s\x1b[0m', '✅ SMTP connection verified successfully');
+        } catch (verifyErr) {
+            console.error('\x1b[31m%s\x1b[0m', '❌ SMTP verification failed:', verifyErr.message);
+            return res.status(500).json({ error: 'SMTP connection failed: ' + verifyErr.message });
+        }
+
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+
+        for (const email of recipients) {
+            try {
+                await transporter.sendMail({
+                    from: '"Gagner Sports" <info@gagnersports.com>',
+                    to: email,
+                    subject: subject,
+                    html: body.replace(/\n/g, '<br/>')
+                });
+                console.log(`✅ Email sent to ${email}`);
+                successCount++;
+            } catch (err) {
+                console.error(`❌ Failed to send email to ${email}:`, err.message);
+                errors.push({ email, error: err.message });
+                failCount++;
+            }
+        }
+
+        res.json({ success: true, successCount, failCount, errors });
+    } catch (e) {
+        console.error('Email error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // --- COUPONS ---
 app.get('/api/coupons', async (req, res) => {
     try {
@@ -302,7 +398,131 @@ app.delete('/api/leaderboard/:slug', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// --- AUDIT ---
+app.get('/api/payment/initiate', async (req, res) => {
+    try {
+        const { amount, orderId, data } = req.query;
+
+        if (!data || !amount || !orderId) return res.status(400).send("Missing query parameters");
+        
+        const payload = JSON.parse(data);
+        const { eventID, participants } = payload;
+        
+        if (!participants || !Array.isArray(participants) || participants.length === 0) {
+            return res.status(400).send('No participants provided');
+        }
+
+        // Save participants as Pending
+        const participantDocs = participants.map(p => ({
+            ...p,
+            eventSlug: eventID,
+            orderId: orderId,
+            paymentStatus: 'Pending',
+            isPaid: false,
+            registeredAt: new Date().toISOString()
+        }));
+        
+        await Participant.insertMany(participantDocs);
+
+        const working_key = '77CBADC7443F52193CDD382949264C51';
+        const access_code = 'AVRB83MH23BQ11BRQB';
+        const merchant_id = '4399469';
+
+        const finalAmount = Number(amount) > 0 ? Number(amount).toFixed(2) : "1.00";
+
+        const requestParams = [
+            `merchant_id=${merchant_id}`,
+            `order_id=${orderId}`,
+            `currency=INR`,
+            `amount=${finalAmount}`,
+            `redirect_url=https://gagnertest.onrender.com/api/payment/status`,
+            `cancel_url=https://gagnertest.onrender.com/api/payment/status`,
+            `language=EN`
+        ].join('&');
+
+        console.log("🔒 GENERATING CCAVENUE ENCRYPTION PAYLOAD...");
+        console.log("-> Parameters:", requestParams);
+        
+        const encRequest = ccav.encrypt(requestParams, working_key);
+        
+        if (!encRequest) throw new Error("Encryption failed: encRequest is empty");
+        console.log("✅ ENCRYPTION SUCCESSFUL. Length:", encRequest.length);
+
+        // The user explicitly requested this exact form structure with ONLY 2 hidden inputs.
+        res.send(`
+            <html>
+                <head><title>Processing Payment...</title></head>
+                <body style="background: #030712; color: white;">
+                    <form action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction" method="POST">
+                        <input type="hidden" name="encRequest" value="${encRequest}" />
+                        <input type="hidden" name="access_code" value="${access_code}" />
+                    </form>
+                    <script>document.forms[0].submit();</script>
+                </body>
+            </html>
+        `);
+    } catch (e) {
+        console.error('PAYMENT INITIATE ERROR:', e.message);
+        res.status(500).send("Server Error: " + e.message);
+    }
+});
+
+/**
+ * 2. Response Webhook: CC Avenue posts data here after transaction
+ * Note: Body-parser must handle urlencoded for this to work as form data
+ */
+app.post('/api/payment/status', express.urlencoded({ extended: true }), async (req, res) => {
+    try {
+        const { encResp } = req.body;
+        // MASTER KEY SYNC (Hardcoded per user workaround)
+        const working_key = '77CBADC7443F52193CDD382949264C51';
+        
+        if (!encResp) return res.status(400).send('No response received');
+
+        const decryptedResp = ccav.decrypt(encResp, working_key);
+        
+        // Parsing "parameter=value&..." string
+        const result = {};
+        decryptedResp.split('&').forEach(item => {
+            const [key, val] = item.split('=');
+            result[key] = val;
+        });
+        
+        const order_id = result['order_id'];
+        const order_status = result['order_status'];
+        const tracking_id = result['tracking_id'];
+
+        console.log(`Payment Response for ${order_id}: ${order_status}`);
+
+        let redirectUrl = 'https://pro-22-03.vercel.app';
+
+        if (order_status === 'Success') {
+            await Participant.updateMany(
+                { orderId: order_id },
+                { paymentStatus: 'Paid', isPaid: true, transactionId: tracking_id, tracking_id: tracking_id }
+            );
+            redirectUrl += '/registration-success?orderId=' + order_id;
+        } else if (order_status === 'Aborted' || order_status === 'Cancel') {
+             await Participant.updateMany(
+                { orderId: order_id },
+                { paymentStatus: 'Failed', isPaid: false, transactionId: tracking_id, tracking_id: tracking_id }
+            );
+            redirectUrl += '/payment-failed?orderId=' + order_id + '&reason=' + order_status;
+        } else {
+            await Participant.updateMany(
+                { orderId: order_id },
+                { paymentStatus: 'Failed', isPaid: false, transactionId: tracking_id, tracking_id: tracking_id }
+            );
+            redirectUrl += '/payment-failed?orderId=' + order_id;
+        }
+
+        // Auto-redirect back to frontend via HTTP 302
+        // This makes the transition completely invisible from the Render backend to the Vercel frontend
+        res.redirect(redirectUrl);
+    } catch (e) {
+        console.error('PAYMENT STATUS ERROR:', e.message);
+        res.status(500).send("An error occurred during payment processing.");
+    }
+});
 app.get('/api/audit', async (req, res) => {
     try { res.json(await Audit.find().sort({ timestamp: -1 }).limit(100)); }
     catch (e) { res.status(500).json({ error: e.message }); }

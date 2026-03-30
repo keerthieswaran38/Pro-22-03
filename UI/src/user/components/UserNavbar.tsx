@@ -62,7 +62,12 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ onOpenLeaderboard, content = []
           <a href="/#contact" className="hover-target">CONTACT</a>
         </div>
 
-        <a href="mailto:balaji@gagnersports.com" className="btn-neon hover-target nav-desktop-cta">GET IN TOUCH</a>
+        <a href="mailto:balaji@gagnersports.com" className="btn-navbar-unique hover-target nav-desktop-cta">
+            <div className="btn-border"></div>
+            <div className="dot-tracer"></div>
+            <div className="shimmer-hologram"></div>
+            <span>GET IN TOUCH</span>
+        </a>
 
         {/* HAMBURGER BUTTON (Mobile Only) */}
         <button 

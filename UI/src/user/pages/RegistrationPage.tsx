@@ -3,6 +3,9 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { GagnerEvent, Participant, saveParticipant } from '../../shared/utils/storage';
 import gsap from 'gsap';
 
+// PAYMENT: Always use the absolute Render backend URL — never a proxy or relative path.
+const BACKEND_URL = 'https://gagnertest.onrender.com';
+
 interface ParticipantForm {
     name: string;
     email: string;
@@ -20,6 +23,9 @@ const emptyForm: ParticipantForm = {
 export default function RegistrationPage({ events }: { events: Record<string, GagnerEvent> }) {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
+    
+    // Check if we are still waiting for events to load (object is empty)
+    const isDataLoading = Object.keys(events).length === 0;
     const event = slug ? events[slug] : null;
 
     // Multi-participant state
@@ -37,21 +43,47 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
 
     useLayoutEffect(() => {
         window.scrollTo(0, 0);
-        if (event) {
-            const ctx = gsap.context(() => {
-                const tl = gsap.timeline();
-                tl.from('.reg-info-glass > *', { opacity: 0, x: -50, duration: 1.2, stagger: 0.1, ease: 'power4.out' })
-                  .from('.form-glass-card', { opacity: 0, y: 100, scale: 0.9, duration: 1.5, ease: 'expo.out' }, '-=0.8')
-                  .from('.form-group-premium, .category-select-premium', { 
-                    opacity: 0, y: 30, duration: 0.8, stagger: 0.05, ease: 'power3.out' 
-                  }, '-=1');
-                
-                gsap.from('.bg-glow-orb', {
-                  opacity: 0, scale: 0.5, duration: 3, stagger: 0.5, ease: 'sine.inOut'
-                });
-            });
-            return () => ctx.revert();
-        }
+        if (!event) return;
+        
+        const ctx = gsap.context(() => {
+            const tl = gsap.timeline();
+            tl.fromTo('.reg-info-glass > *', 
+                { opacity: 0, x: -50 },
+                { opacity: 1, x: 0, duration: 1.2, stagger: 0.1, ease: 'power4.out' }
+            )
+            .fromTo('.form-glass-card', 
+                { opacity: 0, y: 100, scale: 0.9 },
+                { opacity: 1, y: 0, scale: 1, duration: 1.5, ease: 'expo.out' }, '-=0.8'
+            );
+            
+            // Only animate form fields if they exist (step === 'fill')
+            const formFields = document.querySelectorAll('.form-group-premium, .category-select-premium');
+            if (formFields.length > 0) {
+                tl.fromTo('.form-group-premium, .category-select-premium', 
+                    { opacity: 0, y: 30 },
+                    { opacity: 1, y: 0, duration: 0.8, stagger: 0.05, ease: 'power3.out' }, '-=1'
+                );
+            }
+            
+            gsap.fromTo('.bg-glow-orb', 
+                { opacity: 0, scale: 0.5 },
+                { opacity: 1, scale: 1, duration: 3, stagger: 0.5, ease: 'sine.inOut' }
+            );
+        });
+
+        // Global click to close dropdowns
+        const handleGlobalClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (!target.closest('.custom-select-wrap')) {
+                document.querySelectorAll('.cs-options').forEach(el => el.classList.remove('show'));
+            }
+        };
+        document.addEventListener('mousedown', handleGlobalClick);
+        
+        return () => {
+            ctx.revert();
+            document.removeEventListener('mousedown', handleGlobalClick);
+        };
     }, [event]);
 
     const formatEventDate = (dateStr: string) => {
@@ -62,11 +94,21 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
     };
 
     if (!event) {
+        if (isDataLoading) {
+            return (
+                <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a', color: '#fff' }}>
+                    <div className="loading-spinner" style={{ width: '40px', height: '40px', border: '3px solid rgba(255,95,0,0.3)', borderTopColor: '#ff5f00', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    <p style={{ marginTop: '1.5rem', letterSpacing: '2px', fontSize: '0.8rem', opacity: 0.5 }}>LOADING EVENT DATA...</p>
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+            );
+        }
         return (
-            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a', padding: '2rem' }}>
-                <h1 style={{ fontSize: '4rem', fontWeight: 900, color: '#222', marginBottom: '1rem' }}>404</h1>
-                <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '2rem' }}>EVENT NOT FOUND</h2>
-                <Link to="/" style={{ color: '#ff5f00', fontWeight: 700, textDecoration: 'none', border: '1px solid #ff5f00', padding: '1rem 2rem', borderRadius: '4px' }}>GO BACK HOME</Link>
+            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#020408', padding: '2rem', textAlign: 'center' }}>
+                <h1 style={{ fontSize: '6rem', fontWeight: 900, color: 'rgba(255,255,255,0.05)', marginBottom: '-2rem' }}>404</h1>
+                <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '1rem', color: '#fff', letterSpacing: '-1px' }}>EVENT NOT FOUND</h2>
+                <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '3rem', maxWidth: '400px' }}>The event you are looking for might have been moved, archived, or the slug is incorrect.</p>
+                <Link to="/" style={{ color: '#fff', background: '#ff5f00', fontWeight: 800, textDecoration: 'none', padding: '1.2rem 2.5rem', borderRadius: '12px', boxShadow: '0 20px 40px rgba(255,95,0,0.2)' }}>BACK TO HOME</Link>
             </div>
         );
     }
@@ -113,24 +155,30 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
     const handleFinalSubmit = async () => {
         setLoading(true);
         try {
-            for (const form of participants) {
-                const p: Participant = {
-                    id: `P-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-                    ...form,
-                    city: 'N/A',
-                    ageGroup: form.age,
-                    eventSlug: event.slug || slug || '',
+            const totalAmount = participants.reduce((sum, p) => {
+                const cat = event.categories.find(c => c.name === p.category);
+                return sum + (cat ? Number(cat.price) : 0);
+            }, 0);
+
+            const orderId = `GS${Date.now()}`;
+
+            const checkoutData = JSON.stringify({
+                eventID: event.slug,
+                participants: participants.map((p) => ({
+                    ...p,
+                    ticketCategory: p.category,
                     eventName: event.title,
-                    registeredAt: new Date().toISOString(),
-                    paymentStatus: 'Pending'
-                };
-                await saveParticipant(p);
-            }
-            setSuccess(true);
-            setTimeout(() => navigate('/'), 4000);
-        } catch (err) {
-            alert('Registration failed. Please try again.');
-        } finally {
+                }))
+            });
+            
+            const encodedData = encodeURIComponent(checkoutData);
+            // Direct navigation to Render backend — bypasses all proxies.
+            // Backend returns an HTML page with a self-submitting form to CC Avenue.
+            window.location.href = `${BACKEND_URL}/api/payment/initiate?amount=${totalAmount}&orderId=${orderId}&data=${encodedData}`;
+
+        } catch (err: any) {
+            console.error('Payment Error:', err);
+            alert(`Payment initiation failed: ${err.message || 'Unknown error'}`);
             setLoading(false);
         }
     };
@@ -251,26 +299,73 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                                             </div>
                                             <div className="form-group-premium">
                                                 <label>MOBILE NUMBER</label>
-                                                <input type="tel" required value={currentForm.phone} onChange={e => setCurrentForm(f => ({ ...f, phone: e.target.value }))} placeholder="+91 00000 00000" />
+                                                <input 
+                                                  type="text" 
+                                                  required 
+                                                  value={currentForm.phone} 
+                                                  onChange={e => {
+                                                    const val = e.target.value.replace(/\D/g, ''); // Number only
+                                                    setCurrentForm(f => ({ ...f, phone: val }));
+                                                  }} 
+                                                  placeholder="00000 00000" 
+                                                />
                                             </div>
+                                            {/* Custom Dropdown for Gender */}
                                             <div className="form-group-premium">
                                                 <label>GENDER</label>
-                                                <select required value={currentForm.gender} onChange={e => setCurrentForm(f => ({ ...f, gender: e.target.value }))}>
-                                                    <option value="">Select Gender</option>
-                                                    <option value="Male">Male</option>
-                                                    <option value="Female">Female</option>
-                                                </select>
+                                                <div className="custom-select-wrap">
+                                                    <div className={`cs-current ${currentForm.gender ? 'active' : ''}`} onClick={() => {
+                                                        const el = document.getElementById('gender-dropdown');
+                                                        if (el) el.classList.toggle('show');
+                                                    }}>
+                                                        {currentForm.gender || "Select Gender"}
+                                                        <span className="cs-arrow">▼</span>
+                                                    </div>
+                                                    <div id="gender-dropdown" className="cs-options">
+                                                        {["Male", "Female", "Other"].map(opt => (
+                                                            <div key={opt} className="cs-option" onClick={() => {
+                                                                setCurrentForm(f => ({ ...f, gender: opt }));
+                                                                document.getElementById('gender-dropdown')?.classList.remove('show');
+                                                            }}>{opt}</div>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
+
                                             <div className="form-group-premium">
                                                 <label>AGE</label>
-                                                <input type="number" required value={currentForm.age} onChange={e => setCurrentForm(f => ({ ...f, age: e.target.value }))} placeholder="Years" />
+                                                <input 
+                                                  type="text" 
+                                                  required 
+                                                  value={currentForm.age} 
+                                                  onChange={e => {
+                                                    const val = e.target.value.replace(/\D/g, ''); 
+                                                    setCurrentForm(f => ({ ...f, age: val }));
+                                                  }} 
+                                                  placeholder="Years" 
+                                                />
                                             </div>
+
+                                            {/* Custom Dropdown for T-Shirt Size */}
                                             <div className="form-group-premium">
                                                 <label>T-SHIRT SIZE</label>
-                                                <select required value={currentForm.tshirtSize} onChange={e => setCurrentForm(f => ({ ...f, tshirtSize: e.target.value }))}>
-                                                    <option value="">Select Size</option>
-                                                    {['22','24','26','28','30','32','34','36'].map(s => <option key={s} value={s}>{s}</option>)}
-                                                </select>
+                                                <div className="custom-select-wrap">
+                                                    <div className={`cs-current ${currentForm.tshirtSize ? 'active' : ''}`} onClick={() => {
+                                                        const el = document.getElementById('size-dropdown');
+                                                        if (el) el.classList.toggle('show');
+                                                    }}>
+                                                        {currentForm.tshirtSize || "Select Size"}
+                                                        <span className="cs-arrow">▼</span>
+                                                    </div>
+                                                    <div id="size-dropdown" className="cs-options">
+                                                        {['22','24','26','28','30','32','34','36'].map(opt => (
+                                                            <div key={opt} className="cs-option" onClick={() => {
+                                                                setCurrentForm(f => ({ ...f, tshirtSize: opt }));
+                                                                document.getElementById('size-dropdown')?.classList.remove('show');
+                                                            }}>{opt}</div>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -389,7 +484,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                     letter-spacing: -2px;
                     margin-bottom: 3rem;
                     text-transform: uppercase;
-                    background: linear-gradient(to bottom, #fff 40%, rgba(255,255,255,0.4));
+                    background: linear-gradient(to bottom, #fff 0%, #eee 40%, rgba(255,255,255,0.7));
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                 }
@@ -397,52 +492,54 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 .event-stats-glass-grid {
                     display: grid;
                     grid-template-columns: repeat(2, 1fr);
-                    gap: 1rem;
-                    margin-bottom: 2rem;
+                    gap: 1.2rem;
+                    margin-bottom: 2.5rem;
                 }
                 .stat-card-mini {
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.05);
-                    padding: 1.2rem;
-                    border-radius: 16px;
+                    background: rgba(255,255,255,0.05);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    padding: 1.5rem;
+                    border-radius: 18px;
                     display: flex;
                     flex-direction: column;
                     gap: 5px;
+                    transition: all 0.3s;
                 }
+                .stat-card-mini:hover { background: rgba(255,255,255,0.08); border-color: var(--primary); }
                 .stat-card-mini.full { grid-column: span 2; }
-                .stat-card-mini .label { font-size: 0.65rem; color: rgba(255,255,255,0.3); font-weight: 800; letter-spacing: 2px; }
-                .stat-card-mini .value { font-size: 1rem; font-weight: 700; color: #fff; }
+                .stat-card-mini .label { font-size: 0.75rem; color: rgba(255,255,255,0.6); font-weight: 800; letter-spacing: 2px; }
+                .stat-card-mini .value { font-size: 1.1rem; font-weight: 700; color: #fff; }
 
-                .event-desc-premium { font-size: 1rem; line-height: 1.6; color: rgba(255,255,255,0.5); margin-bottom: 2rem; max-width: 90%; }
+                .event-desc-premium { font-size: 1.1rem; line-height: 1.6; color: rgba(255,255,255,0.8); margin-bottom: 2.5rem; max-width: 95%; }
                 
-                .deliverables-unique { display: flex; flex-wrap: wrap; gap: 10px; }
+                .deliverables-unique { display: flex; flex-wrap: wrap; gap: 12px; }
                 .del-pill {
-                    background: rgba(0, 200, 83, 0.05);
-                    border: 1px solid rgba(0, 200, 83, 0.1);
-                    color: var(--secondary);
-                    padding: 6px 14px;
+                    background: rgba(0, 200, 83, 0.1);
+                    border: 1px solid rgba(0, 200, 83, 0.2);
+                    color: #00c853;
+                    padding: 8px 18px;
                     border-radius: 100px;
-                    font-size: 0.75rem;
-                    font-weight: 600;
+                    font-size: 0.8rem;
+                    font-weight: 700;
                 }
 
                 /* ============ FORM STYLES ============ */
                 .form-glass-card {
-                    background: rgba(255,255,255,0.02);
-                    backdrop-filter: blur(20px);
-                    -webkit-backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255,255,255,0.05);
+                    background: rgba(20, 20, 20, 0.85);
+                    backdrop-filter: blur(40px);
+                    -webkit-backdrop-filter: blur(40px);
+                    border: 1px solid rgba(255,255,255,0.1);
                     border-radius: 32px;
-                    padding: 3rem;
-                    box-shadow: 0 40px 100px rgba(0,0,0,0.4);
+                    padding: 4rem;
+                    box-shadow: 0 50px 120px rgba(0,0,0,0.6);
                 }
-                .form-header-premium h2 { font-size: 1.8rem; font-weight: 900; margin-bottom: 0.8rem; color: #fff; }
+                .form-header-premium h2 { font-size: 2.2rem; font-weight: 900; margin-bottom: 1rem; color: #fff; text-transform: uppercase; letter-spacing: -1px; }
                 .form-header-premium .highlight { color: var(--primary); }
-                .form-header-premium .header-line { width: 60px; height: 4px; background: var(--primary); border-radius: 2px; margin-bottom: 2rem; }
+                .form-header-premium .header-line { width: 80px; height: 5px; background: var(--primary); border-radius: 2px; margin-bottom: 3rem; box-shadow: 0 0 20px rgba(255, 95, 0, 0.5); }
 
                 /* TICKET COUNT STEP */
                 .ticket-count-step { text-align: center; padding: 2rem 0; }
-                .tc-label { font-size: 0.75rem; font-weight: 800; color: rgba(255,255,255,0.3); letter-spacing: 3px; display: block; margin-bottom: 2rem; }
+                .tc-label { font-size: 0.85rem; font-weight: 800; color: rgba(255,255,255,0.5); letter-spacing: 3px; display: block; margin-bottom: 2.5rem; text-transform: uppercase; }
                 .tc-selector { display: flex; align-items: center; justify-content: center; gap: 2rem; margin-bottom: 1.5rem; }
                 .tc-btn {
                     width: 50px; height: 50px;
@@ -483,11 +580,72 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                     -webkit-appearance: none;
                 }
                 .form-group-premium input::placeholder { color: rgba(255,255,255,0.2); }
-                .form-group-premium select option { background: #111; color: #fff; }
+                /* Custom Select Styles */
+                .form-group-premium { position: relative; }
+                .form-group-premium:focus-within { z-index: 1000; }
+                .custom-select-wrap { position: relative; width: 100%; }
+                .cs-current {
+                    background: #111;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    padding: 0.9rem 1rem;
+                    border-radius: 12px;
+                    color: rgba(255,255,255,0.4);
+                    font-size: 0.95rem;
+                    cursor: pointer;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    transition: all 0.3s;
+                    position: relative;
+                    z-index: 2;
+                }
+                .cs-current.active { color: #fff; border-color: var(--primary); }
+                .cs-current:hover { border-color: var(--primary); background: rgba(255,95,0,0.05); }
+                .cs-arrow { font-size: 0.6rem; opacity: 0.5; transition: transform 0.3s; }
+                
+                .cs-options {
+                    position: absolute;
+                    top: 100%;
+                    left: 0; width: 100%;
+                    background: #000;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    border-radius: 0 0 12px 12px;
+                    z-index: 2000;
+                    display: none;
+                    flex-direction: column;
+                    overflow: hidden;
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+                    animation: cs-fade 0.2s ease-out;
+                    margin-top: -1px;
+                }
+                .cs-options.show { display: flex; }
+                .cs-option {
+                    padding: 1rem;
+                    cursor: pointer;
+                    font-size: 0.95rem;
+                    color: rgba(255,255,255,0.7);
+                    transition: all 0.2s;
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                    background: #000;
+                }
+                .cs-option:last-child { border-bottom: none; }
+                .cs-option:hover { background: var(--primary); color: #000; font-weight: 800; transform: translateX(5px); }
+
+                @keyframes cs-fade { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+                .form-group-premium select option { background: #111; color: #fff; padding: 10px; }
                 .form-group-premium input:focus, .form-group-premium select:focus { 
                     border-color: var(--primary); 
                     background: rgba(255,95,0,0.05); 
                     box-shadow: 0 0 20px rgba(255,95,0,0.1); 
+                }
+                /* Project Theme Select highlight */
+                select:active, select:focus {
+                    background-color: rgba(255, 95, 0, 0.1) !important;
+                }
+                option:hover, option:focus, option:checked {
+                    background-color: var(--primary) !important;
+                    color: #000 !important;
                 }
 
                 .category-select-premium label { font-size: 0.7rem; font-weight: 800; color: rgba(255,255,255,0.4); letter-spacing: 1.5px; display: block; margin-bottom: 1rem; }

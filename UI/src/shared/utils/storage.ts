@@ -52,6 +52,10 @@ export interface Participant {
   eventName: string;
   category: string;
   paymentStatus: 'Paid' | 'Pending' | 'Failed';
+  isPaid: boolean;
+  orderId?: string;
+  transactionId?: string;
+  tracking_id?: string;
   registeredAt: string;
 }
 
@@ -88,25 +92,47 @@ export interface ContentBlock {
 // API HELPERS (WITH DEBUGGING)
 // ========================
 
+// Import centralized API config
+import API_BASE_URL from '../../config/api';
+export const API_BASE = API_BASE_URL;
+
 const api = {
   get: async (url: string) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`GET ${url} failed`);
-    return await res.json();
+    const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+    try {
+      const res = await fetch(fullUrl);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      return await res.json();
+    } catch (err: any) {
+      console.error(`❌ GET ${fullUrl} failed:`, err.message);
+      throw err;
+    }
   },
   post: async (url: string, data: any) => {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error(`POST ${url} failed`);
-    return await res.json();
+    const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+    try {
+      const res = await fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      return await res.json();
+    } catch (err: any) {
+      console.error(`❌ POST ${fullUrl} failed:`, err.message);
+      throw err;
+    }
   },
   del: async (url: string) => {
-    const res = await fetch(url, { method: 'DELETE' });
-    if (!res.ok) throw new Error(`DELETE ${url} failed`);
-    return await res.json();
+    const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+    try {
+      const res = await fetch(fullUrl, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      return await res.json();
+    } catch (err: any) {
+      console.error(`❌ DELETE ${fullUrl} failed:`, err.message);
+      throw err;
+    }
   }
 };
 
@@ -116,7 +142,7 @@ const api = {
 export async function uploadImage(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('image', file);
-  const res = await fetch('/api/upload', { method: 'POST', body: formData });
+  const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: formData });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Upload failed' }));
     throw new Error(err.error || 'Upload failed');
@@ -145,6 +171,11 @@ export async function saveParticipant(p: Participant): Promise<void> {
 export async function saveParticipants(parts: Participant[]): Promise<void> {
   await api.post('/api/participants-batch', parts);
 }
+
+export async function sendBulkEmail(subject: string, body: string, recipients: string[]): Promise<any> {
+  return await api.post('/api/bulk-email', { subject, body, recipients });
+}
+
 
 export interface LeaderboardEntry {
   name: string;
@@ -195,7 +226,7 @@ export async function createDMSItem(type: string, item: Partial<ContentBlock>): 
 }
 
 export async function updateDMSItem(type: string, id: string, item: Partial<ContentBlock>): Promise<ContentBlock> {
-  const res = await fetch(`/api/dms/${type}/${id}`, {
+  const res = await fetch(`${API_BASE}/api/dms/${type}/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(item)
