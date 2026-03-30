@@ -415,12 +415,13 @@ app.post('/api/payment/initiate', async (req, res) => {
         const order_id = `GS${Date.now()}`;
         
         // Construct CCAvenue standard request string
-        const merchant_id = process.env.CCAV_MERCHANT_ID;
-        const access_code = process.env.CCAV_ACCESS_CODE;
-        const working_key = process.env.CCAV_WORKING_KEY;
+        // MASTER KEY SYNC (Hardcoded per user workaround)
+        const merchant_id = '4399469';
+        const access_code = 'AVRB83MH23BQ11BRQB';
+        const working_key = '77CBADC7443F52193CDD382949264C51';
 
         if (!merchant_id || !access_code || !working_key) {
-            throw new Error('CC Avenue credentials missing in environment');
+            throw new Error('CC Avenue credentials missing');
         }
 
         // Save all participants as Pending first with the Order ID
@@ -435,18 +436,18 @@ app.post('/api/payment/initiate', async (req, res) => {
         
         await Participant.insertMany(participantDocs);
 
-        // redirectUrl and cancelUrl MUST be provided by the frontend to ensure Ngrok/Public domains
-        if(!redirectUrl || !cancelUrl) {
-            throw new Error('redirectUrl and cancelUrl are mandatory parameters');
-        }
+        // Override frontend relative URLs with absolute Render URLs
+        // This makes CCAvenue think the request originated from a registered backend
+        const renderRedirectUrl = 'https://gagnertest.onrender.com/api/payment/status';
+        const renderCancelUrl = 'https://gagnertest.onrender.com/api/payment/status';
 
         const requestParams = [
             `merchant_id=${merchant_id}`,
             `order_id=${order_id}`,
             `currency=INR`,
             `amount=${totalAmount}`,
-            `redirect_url=${redirectUrl}`,
-            `cancel_url=${cancelUrl}`,
+            `redirect_url=${renderRedirectUrl}`,
+            `cancel_url=${renderCancelUrl}`,
             `language=EN`
         ].join('&');
 
@@ -472,7 +473,8 @@ app.post('/api/payment/initiate', async (req, res) => {
 app.post('/api/payment/status', express.urlencoded({ extended: true }), async (req, res) => {
     try {
         const { encResp } = req.body;
-        const working_key = process.env.CCAV_WORKING_KEY;
+        // MASTER KEY SYNC (Hardcoded per user workaround)
+        const working_key = '77CBADC7443F52193CDD382949264C51';
         
         if (!encResp) return res.status(400).send('No response received');
 
@@ -513,19 +515,9 @@ app.post('/api/payment/status', express.urlencoded({ extended: true }), async (r
             redirectUrl += '/payment-failed?oid=' + order_id;
         }
 
-        // Auto-redirect back to frontend via simple HTML/JS
-        res.send(`
-            <html>
-                <body>
-                    <div style="text-align:center; margin-top: 50px;">
-                        <h2>Gagner Sports: Redirecting...</h2>
-                        <p>Processing your payment status. Please wait.</p>
-                    </div>
-                    <form id="redirect" action="${redirectUrl}" method="GET"></form>
-                    <script>document.getElementById("redirect").submit();</script>
-                </body>
-            </html>
-        `);
+        // Auto-redirect back to frontend via HTTP 302
+        // This makes the transition completely invisible from the Render backend to the Vercel frontend
+        res.redirect(redirectUrl);
     } catch (e) {
         console.error('PAYMENT STATUS ERROR:', e.message);
         res.status(500).send("An error occurred during payment processing.");
