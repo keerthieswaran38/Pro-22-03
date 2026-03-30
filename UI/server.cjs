@@ -436,10 +436,7 @@ app.post('/api/payment/initiate', async (req, res) => {
         
         await Participant.insertMany(participantDocs);
 
-        // HARDCODE the keys directly exactly as requested
-        const working_key = '77CBADC7443F52193CDD382949264C51';
-        const access_code = 'AVRB83MH23BQ11BRQB';
-        const merchant_id = '4399469';
+        // Variables are already hardcoded properly above.
 
         const requestParams = [
             `merchant_id=${merchant_id}`,
