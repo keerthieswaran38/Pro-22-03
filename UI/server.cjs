@@ -436,22 +436,28 @@ app.post('/api/payment/initiate', async (req, res) => {
         
         await Participant.insertMany(participantDocs);
 
-        // Override frontend relative URLs with absolute Render URLs
-        // This makes CCAvenue think the request originated from a registered backend
-        const renderRedirectUrl = 'https://gagnertest.onrender.com/api/payment/status';
-        const renderCancelUrl = 'https://gagnertest.onrender.com/api/payment/status';
+        // HARDCODE the keys directly exactly as requested
+        const working_key = '77CBADC7443F52193CDD382949264C51';
+        const access_code = 'AVRB83MH23BQ11BRQB';
+        const merchant_id = '4399469';
 
         const requestParams = [
             `merchant_id=${merchant_id}`,
             `order_id=${order_id}`,
             `currency=INR`,
             `amount=${totalAmount}`,
-            `redirect_url=${renderRedirectUrl}`,
-            `cancel_url=${renderCancelUrl}`,
+            `redirect_url=https://gagnertest.onrender.com/api/payment/status`,
+            `cancel_url=https://gagnertest.onrender.com/api/payment/status`,
             `language=EN`
         ].join('&');
 
+        console.log("🔒 GENERATING CCAVENUE ENCRYPTION PAYLOAD...");
+        console.log("-> Parameters:", requestParams);
+        
         const encRequest = ccav.encrypt(requestParams, working_key);
+        
+        if (!encRequest) throw new Error("Encryption failed: encRequest is empty");
+        console.log("✅ ENCRYPTION SUCCESSFUL. Length:", encRequest.length);
 
         res.json({
             success: true,
@@ -519,26 +525,26 @@ app.post('/api/payment/status', express.urlencoded({ extended: true }), async (r
 
         console.log(`Payment Response for ${order_id}: ${order_status}`);
 
-        let redirectUrl = process.env.FRONTEND_URL || 'http://localhost:3009';
+        let redirectUrl = 'https://pro-22-03.vercel.app';
 
         if (order_status === 'Success') {
             await Participant.updateMany(
                 { orderId: order_id },
                 { paymentStatus: 'Paid', isPaid: true, transactionId: tracking_id, tracking_id: tracking_id }
             );
-            redirectUrl += '/payment-success?oid=' + order_id;
+            redirectUrl += '/registration-success?orderId=' + order_id;
         } else if (order_status === 'Aborted' || order_status === 'Cancel') {
              await Participant.updateMany(
                 { orderId: order_id },
                 { paymentStatus: 'Failed', isPaid: false, transactionId: tracking_id, tracking_id: tracking_id }
             );
-            redirectUrl += '/payment-failed?oid=' + order_id + '&reason=' + order_status;
+            redirectUrl += '/payment-failed?orderId=' + order_id + '&reason=' + order_status;
         } else {
             await Participant.updateMany(
                 { orderId: order_id },
                 { paymentStatus: 'Failed', isPaid: false, transactionId: tracking_id, tracking_id: tracking_id }
             );
-            redirectUrl += '/payment-failed?oid=' + order_id;
+            redirectUrl += '/payment-failed?orderId=' + order_id;
         }
 
         // Auto-redirect back to frontend via HTTP 302
