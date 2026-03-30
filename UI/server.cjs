@@ -7,11 +7,35 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const ccav = require('./ccavUtils.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// --- CORS CONFIG ---
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3009',
+    'http://localhost:5173',
+    'https://pro-22-03-97lxjpo5s-lucy233223ash-7358s-projects.vercel.app',
+    'https://pro-22-03.vercel.app',
+    'https://pro-22-03-x3iv.vercel.app'
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('vercel.app')) {
+            callback(null, true);
+        } else {
+            callback(null, new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // --- CLOUDINARY CONFIG ---
@@ -130,6 +154,10 @@ const participantSchema = new mongoose.Schema({
     city: String, gender: String, ageGroup: String, age: String, tshirtSize: String,
     eventSlug: String, eventName: String, category: String,
     paymentStatus: { type: String, enum: ['Paid', 'Pending', 'Failed'], default: 'Pending' },
+    isPaid: { type: Boolean, default: false },
+    orderId: String,
+    transactionId: String,
+    tracking_id: String,
     registeredAt: { type: String, default: () => new Date().toISOString() }
 });
 
@@ -361,7 +389,139 @@ app.delete('/api/leaderboard/:slug', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// --- AUDIT ---
+// ========================
+// PAYMENT GATEWAY (CC Avenue)
+// ========================
+
+// 1. Payment Initiation
+app.post('/api/payment/initiate', async (req, res) => {
+    try {
+        const { eventID, participants, totalAmount, redirectUrl, cancelUrl } = req.body;
+        
+        if (!participants || !Array.isArray(participants) || participants.length === 0) {
+            return res.status(400).json({ error: 'No participants provided' });
+        }
+
+        // Generate a bulletproof unique Order ID (prefixed to avoid collision with live site)
+        const order_id = `GS${Date.now()}`;
+        
+        // Construct CCAvenue standard request string
+        const merchant_id = process.env.CCAV_MERCHANT_ID;
+        const access_code = process.env.CCAV_ACCESS_CODE;
+        const working_key = process.env.CCAV_WORKING_KEY;
+
+        if (!merchant_id || !access_code || !working_key) {
+            throw new Error('CC Avenue credentials missing in environment');
+        }
+
+        // Save all participants as Pending first with the Order ID
+        const participantDocs = participants.map(p => ({
+            ...p,
+            eventSlug: eventID,
+            orderId: order_id,
+            paymentStatus: 'Pending',
+            isPaid: false,
+            registeredAt: new Date().toISOString()
+        }));
+        
+        await Participant.insertMany(participantDocs);
+
+        // redirectUrl and cancelUrl MUST be provided by the frontend to ensure Ngrok/Public domains
+        if(!redirectUrl || !cancelUrl) {
+            throw new Error('redirectUrl and cancelUrl are mandatory parameters');
+        }
+
+        const requestParams = [
+            `merchant_id=${merchant_id}`,
+            `order_id=${order_id}`,
+            `currency=INR`,
+            `amount=${totalAmount}`,
+            `redirect_url=${redirectUrl}`,
+            `cancel_url=${cancelUrl}`,
+            `language=EN`
+        ].join('&');
+
+        const encRequest = ccav.encrypt(requestParams, working_key);
+
+        res.json({
+            success: true,
+            encRequest,
+            access_code,
+            merchant_id,
+            order_id
+        });
+    } catch (e) {
+        console.error('PAYMENT INITIATE ERROR:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * 2. Response Webhook: CC Avenue posts data here after transaction
+ * Note: Body-parser must handle urlencoded for this to work as form data
+ */
+app.post('/api/payment/status', express.urlencoded({ extended: true }), async (req, res) => {
+    try {
+        const { encResp } = req.body;
+        const working_key = process.env.CCAV_WORKING_KEY;
+        
+        if (!encResp) return res.status(400).send('No response received');
+
+        const decryptedResp = ccav.decrypt(encResp, working_key);
+        
+        // Parsing "parameter=value&..." string
+        const result = {};
+        decryptedResp.split('&').forEach(item => {
+            const [key, val] = item.split('=');
+            result[key] = val;
+        });
+        
+        const order_id = result['order_id'];
+        const order_status = result['order_status'];
+        const tracking_id = result['tracking_id'];
+
+        console.log(`Payment Response for ${order_id}: ${order_status}`);
+
+        let redirectUrl = process.env.FRONTEND_URL || 'http://localhost:3009';
+
+        if (order_status === 'Success') {
+            await Participant.updateMany(
+                { orderId: order_id },
+                { paymentStatus: 'Paid', isPaid: true, transactionId: tracking_id, tracking_id: tracking_id }
+            );
+            redirectUrl += '/payment-success?oid=' + order_id;
+        } else if (order_status === 'Aborted' || order_status === 'Cancel') {
+             await Participant.updateMany(
+                { orderId: order_id },
+                { paymentStatus: 'Failed', isPaid: false, transactionId: tracking_id, tracking_id: tracking_id }
+            );
+            redirectUrl += '/payment-failed?oid=' + order_id + '&reason=' + order_status;
+        } else {
+            await Participant.updateMany(
+                { orderId: order_id },
+                { paymentStatus: 'Failed', isPaid: false, transactionId: tracking_id, tracking_id: tracking_id }
+            );
+            redirectUrl += '/payment-failed?oid=' + order_id;
+        }
+
+        // Auto-redirect back to frontend via simple HTML/JS
+        res.send(`
+            <html>
+                <body>
+                    <div style="text-align:center; margin-top: 50px;">
+                        <h2>Gagner Sports: Redirecting...</h2>
+                        <p>Processing your payment status. Please wait.</p>
+                    </div>
+                    <form id="redirect" action="${redirectUrl}" method="GET"></form>
+                    <script>document.getElementById("redirect").submit();</script>
+                </body>
+            </html>
+        `);
+    } catch (e) {
+        console.error('PAYMENT STATUS ERROR:', e.message);
+        res.status(500).send("An error occurred during payment processing.");
+    }
+});
 app.get('/api/audit', async (req, res) => {
     try { res.json(await Audit.find().sort({ timestamp: -1 }).limit(100)); }
     catch (e) { res.status(500).json({ error: e.message }); }

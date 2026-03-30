@@ -96,6 +96,10 @@ export interface ContentBlock {
 export const API_BASE = (import.meta as any).env.VITE_API_URL || 
   (window.location.hostname !== 'localhost' ? 'https://gagnertest.onrender.com' : '');
 
+if ((import.meta as any).env.PROD) {
+  console.log('🔗 PROD API connected to:', API_BASE);
+}
+
 const api = {
   get: async (url: string) => {
     const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
