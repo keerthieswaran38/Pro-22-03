@@ -467,6 +467,32 @@ app.post('/api/payment/initiate', async (req, res) => {
 });
 
 /**
+ * 1.5 Trampoline endpoint: Hides Vercel's Origin by bouncing the browser through Render
+ */
+app.post('/api/payment/forward', express.urlencoded({ extended: true }), (req, res) => {
+    const { encRequest, access_code, merchant_id } = req.body;
+    res.send(`
+        <html>
+            <head>
+                <title>Secure Payment Gateway</title>
+                <style>
+                    body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #030712; color: #fff; font-family: sans-serif; }
+                </style>
+            </head>
+            <body>
+                <div>Redirecting to Secure Payment Gateway...</div>
+                <form id="ccavForm" action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction" method="POST">
+                    <input type="hidden" name="encRequest" value="${encRequest}">
+                    <input type="hidden" name="access_code" value="${access_code}">
+                    <input type="hidden" name="merchant_id" value="${merchant_id}">
+                </form>
+                <script>document.getElementById("ccavForm").submit();</script>
+            </body>
+        </html>
+    `);
+});
+
+/**
  * 2. Response Webhook: CC Avenue posts data here after transaction
  * Note: Body-parser must handle urlencoded for this to work as form data
  */
