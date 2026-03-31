@@ -193,12 +193,14 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
 export default function UserApp() {
   const [dataTimeout, setDataTimeout] = useState(false);
+  const [isWakingUp, setIsWakingUp] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDataTimeout(true);
-    }, 6000); // 6-second hard limit
-    return () => clearTimeout(timer);
+    // Render free tier cold-starts take up to ~50s.
+    // Show a "waking up" hint after 8s, and only show the fallback error banner after 65s.
+    const wakeTimer  = setTimeout(() => setIsWakingUp(true),  8000);
+    const hardTimer  = setTimeout(() => { setDataTimeout(true); setIsWakingUp(false); }, 65000);
+    return () => { clearTimeout(wakeTimer); clearTimeout(hardTimer); };
   }, []);
 
   const { data: events = {}, isLoading: evLoading, error: evError } = useEvents();
@@ -224,6 +226,14 @@ export default function UserApp() {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      {/* Waking up Render server (amber, non-alarming) */}
+      {isWakingUp && !dataTimeout && isStillLoading && (
+          <div style={{ position:'fixed', top:0, left:0, right:0, background:'rgba(180,120,0,0.95)', color:'#fff', zIndex:99999, padding:'8px 16px', textAlign:'center', fontSize:'13px', fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:'10px' }}>
+            <span style={{ display:'inline-block', width:'14px', height:'14px', border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}></span>
+            ⏳ Waking up the server — this takes ~30 seconds on first load. Please wait...
+          </div>
+      )}
+      {/* Full fallback error — only after 65s with no response */}
       {hasError && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: 'red', color: 'white', zIndex: 99999, padding: '10px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold' }}>
               ⚠️ Unable to load live database. Showing local fallback data.
