@@ -172,13 +172,41 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
             });
             
             const encodedData = encodeURIComponent(checkoutData);
-            // Direct navigation to Render backend — bypasses all proxies.
-            // Backend returns an HTML page with a self-submitting form to CC Avenue.
-            window.location.href = `${BACKEND_URL}/api/payment/initiate?amount=${totalAmount}&orderId=${orderId}&data=${encodedData}`;
+            
+            // 1. Fetch the encrypted request from Render (JSON Handshake)
+            const response = await fetch(`${BACKEND_URL}/api/payment/initiate?amount=${totalAmount}&orderId=${orderId}&data=${encodedData}`);
+            const result = await response.json();
+
+            if (!result.success) throw new Error(result.error || 'Failed to initialize payment');
+
+            const { encRequest, access_code, merchant_id, gateway_url } = result;
+
+            // 2. Create a hidden form programmatically to submit to CCAvenue
+            // We do this DOM injection so that CCAvenue sees 'gagnersports.com' as the ORIGIN
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = gateway_url;
+
+            const fields = [
+                { name: 'encRequest', value: encRequest },
+                { name: 'access_code', value: access_code },
+                { name: 'merchant_id', value: merchant_id }
+            ];
+
+            fields.forEach(f => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = f.name;
+                input.value = f.value;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
 
         } catch (err: any) {
-            console.error('Payment Error:', err);
-            alert(`Payment initiation failed: ${err.message || 'Unknown error'}`);
+            console.error('Payment Handshake Error:', err);
+            alert(`Payment setup failed: ${err.message || 'Unknown error'}`);
             setLoading(false);
         }
     };

@@ -412,17 +412,17 @@ app.get('/api/payment/initiate', async (req, res) => {
         }
 
         // ── Read from env vars (Render Dashboard), fall back to hardcoded values ──
-        const working_key = process.env.CCAV_WORKING_KEY || '77CBADC7443F52193CDD382949264C51';
-        const access_code = process.env.CCAV_ACCESS_CODE  || 'AVRB83MH23BQ11BRQB';
-        const merchant_id = process.env.CCAV_MERCHANT_ID  || '4399469';
+        const working_key = (process.env.CCAV_WORKING_KEY || '77CBADC7443F52193CDD382949264C51').trim();
+        const access_code = (process.env.CCAV_ACCESS_CODE  || 'AVRB83MH23BQ11BRQB').trim();
+        const merchant_id = (process.env.CCAV_MERCHANT_ID  || '4399469').trim();
 
         // Guard: if the key is somehow blank after all fallbacks, fail loudly
         if (!working_key || working_key.length < 10) {
             console.error('❌ CRITICAL: CCAV Working Key is missing or too short!');
-            return res.status(500).send('Payment configuration error: Working key not set.');
+            return res.status(500).json({ error: 'Payment configuration error: Working key not set.' });
         }
 
-        console.log(`🔑 Using CCAV keys — Merchant: ${merchant_id}, Key length: ${working_key.length}, Access: ${access_code}`);
+        console.log(`🔑 JSON Handshake — Merchant: ${merchant_id}, Key length: ${working_key.length}, Access: ${access_code}`);
 
         // Save participants as Pending BEFORE redirecting to payment
         const participantDocs = participants.map(p => ({
@@ -444,7 +444,7 @@ app.get('/api/payment/initiate', async (req, res) => {
             `currency=INR`,
             `amount=${finalAmount}`,
             `redirect_url=https://gagnersports.com/api/ccavResponseHandler`,
-            `cancel_url=https://gagnersports.com/api/ccavResponseHandler`,
+            `cancel_url=https://gagnersports.com/failure`,
             `language=EN`
         ].join('&');
 
@@ -458,53 +458,19 @@ app.get('/api/payment/initiate', async (req, res) => {
         console.log(`✅ Encrypted successfully. encRequest length: ${encRequest.length}`);
         console.log(`   First 32 chars: ${encRequest.substring(0, 32)}...`);
 
-        // ── CRITICAL FIX: Set form values via JS, NOT via HTML attribute value="..." ──
-        // Hex strings can contain characters that break HTML attribute parsing (e.g. quotes).
-        // Using JS assignment bypasses the HTML parser entirely — 100% safe.
-        const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <title>Redirecting to Secure Payment...</title>
-  <style>
-    body { background:#030712; color:#fff; font-family:sans-serif;
-           display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
-    .msg { text-align:center; }
-    .spinner { width:40px; height:40px; border:3px solid rgba(255,95,0,0.3);
-               border-top-color:#ff5f00; border-radius:50%;
-               animation:spin 0.8s linear infinite; margin:0 auto 1rem; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-  </style>
-</head>
-<body>
-  <div class="msg">
-    <div class="spinner"></div>
-    <p>Redirecting to secure payment gateway...</p>
-  </div>
-  <form id="ccavForm" action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction" method="POST">
-    <input type="hidden" id="encRequest"  name="encRequest"  value="" />
-    <input type="hidden" id="access_code" name="access_code" value="" />
-  </form>
-  <script>
-    // Assign via JS to prevent HTML parser from corrupting the hex string
-    document.getElementById('encRequest').value  = ${JSON.stringify(encRequest)};
-    document.getElementById('access_code').value = ${JSON.stringify(access_code)};
-    document.getElementById('ccavForm').submit();
-  </script>
-</body>
-</html>`;
-
-        res.setHeader('Content-Type', 'text/html');
-        res.send(html);
+        // ── JSON HANDSHAKE: Send raw data to frontend at gagnersports.com ──
+        // This ensures the actual POST to CCAvenue happens FROM the live domain context.
+        res.json({
+            success: true,
+            encRequest,
+            access_code,
+            merchant_id,
+            gateway_url: 'https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction'
+        });
 
     } catch (e) {
-        console.error('PAYMENT INITIATE ERROR:', e.message, e.stack);
-        res.status(500).send(`
-            <html><body style="background:#030712;color:#f87171;font-family:sans-serif;padding:2rem;">
-            <h2>Payment Server Error</h2><pre>${e.message}</pre>
-            <a href="/" style="color:#ff5f00;">← Go Back</a>
-            </body></html>
-        `);
+        console.error('PAYMENT INITIATE ERROR:', e.message);
+        res.status(500).json({ error: e.message });
     }
 });
 
