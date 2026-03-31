@@ -403,15 +403,28 @@ app.get('/api/payment/initiate', async (req, res) => {
         const { amount, orderId, data } = req.query;
 
         if (!data || !amount || !orderId) return res.status(400).send("Missing query parameters");
-        
-        const payload = JSON.parse(data);
+
+        const payload = JSON.parse(decodeURIComponent(data));
         const { eventID, participants } = payload;
-        
+
         if (!participants || !Array.isArray(participants) || participants.length === 0) {
             return res.status(400).send('No participants provided');
         }
 
-        // Save participants as Pending
+        // ── Read from env vars (Render Dashboard), fall back to hardcoded values ──
+        const working_key = process.env.CCAV_WORKING_KEY || '77CBADC7443F52193CDD382949264C51';
+        const access_code = process.env.CCAV_ACCESS_CODE  || 'AVRB83MH23BQ11BRQB';
+        const merchant_id = process.env.CCAV_MERCHANT_ID  || '4399469';
+
+        // Guard: if the key is somehow blank after all fallbacks, fail loudly
+        if (!working_key || working_key.length < 10) {
+            console.error('❌ CRITICAL: CCAV Working Key is missing or too short!');
+            return res.status(500).send('Payment configuration error: Working key not set.');
+        }
+
+        console.log(`🔑 Using CCAV keys — Merchant: ${merchant_id}, Key length: ${working_key.length}, Access: ${access_code}`);
+
+        // Save participants as Pending BEFORE redirecting to payment
         const participantDocs = participants.map(p => ({
             ...p,
             eventSlug: eventID,
@@ -420,15 +433,11 @@ app.get('/api/payment/initiate', async (req, res) => {
             isPaid: false,
             registeredAt: new Date().toISOString()
         }));
-        
         await Participant.insertMany(participantDocs);
 
-        const working_key = '77CBADC7443F52193CDD382949264C51';
-        const access_code = 'AVRB83MH23BQ11BRQB';
-        const merchant_id = '4399469';
+        const finalAmount = Number(amount) > 0 ? Number(amount).toFixed(2) : '1.00';
 
-        const finalAmount = Number(amount) > 0 ? Number(amount).toFixed(2) : "1.00";
-
+        // merchant_id MUST be inside the encrypted string per CC Avenue spec
         const requestParams = [
             `merchant_id=${merchant_id}`,
             `order_id=${orderId}`,
@@ -439,30 +448,63 @@ app.get('/api/payment/initiate', async (req, res) => {
             `language=EN`
         ].join('&');
 
-        console.log("🔒 GENERATING CCAVENUE ENCRYPTION PAYLOAD...");
-        console.log("-> Parameters:", requestParams);
-        
-        const encRequest = ccav.encrypt(requestParams, working_key);
-        
-        if (!encRequest) throw new Error("Encryption failed: encRequest is empty");
-        console.log("✅ ENCRYPTION SUCCESSFUL. Length:", encRequest.length);
+        console.log('🔒 Encrypting payload:', requestParams);
 
-        // The user explicitly requested this exact form structure with ONLY 2 hidden inputs.
-        res.send(`
-            <html>
-                <head><title>Processing Payment...</title></head>
-                <body style="background: #030712; color: white;">
-                    <form action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction" method="POST">
-                        <input type="hidden" name="encRequest" value="${encRequest}" />
-                        <input type="hidden" name="access_code" value="${access_code}" />
-                    </form>
-                    <script>document.forms[0].submit();</script>
-                </body>
-            </html>
-        `);
+        const encRequest = ccav.encrypt(requestParams, working_key);
+
+        if (!encRequest || encRequest.length < 10) {
+            throw new Error(`Encryption produced empty/short output (len=${encRequest ? encRequest.length : 0})`);
+        }
+        console.log(`✅ Encrypted successfully. encRequest length: ${encRequest.length}`);
+        console.log(`   First 32 chars: ${encRequest.substring(0, 32)}...`);
+
+        // ── CRITICAL FIX: Set form values via JS, NOT via HTML attribute value="..." ──
+        // Hex strings can contain characters that break HTML attribute parsing (e.g. quotes).
+        // Using JS assignment bypasses the HTML parser entirely — 100% safe.
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Redirecting to Secure Payment...</title>
+  <style>
+    body { background:#030712; color:#fff; font-family:sans-serif;
+           display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+    .msg { text-align:center; }
+    .spinner { width:40px; height:40px; border:3px solid rgba(255,95,0,0.3);
+               border-top-color:#ff5f00; border-radius:50%;
+               animation:spin 0.8s linear infinite; margin:0 auto 1rem; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="msg">
+    <div class="spinner"></div>
+    <p>Redirecting to secure payment gateway...</p>
+  </div>
+  <form id="ccavForm" action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction" method="POST">
+    <input type="hidden" id="encRequest"  name="encRequest"  value="" />
+    <input type="hidden" id="access_code" name="access_code" value="" />
+  </form>
+  <script>
+    // Assign via JS to prevent HTML parser from corrupting the hex string
+    document.getElementById('encRequest').value  = ${JSON.stringify(encRequest)};
+    document.getElementById('access_code').value = ${JSON.stringify(access_code)};
+    document.getElementById('ccavForm').submit();
+  </script>
+</body>
+</html>`;
+
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+
     } catch (e) {
-        console.error('PAYMENT INITIATE ERROR:', e.message);
-        res.status(500).send("Server Error: " + e.message);
+        console.error('PAYMENT INITIATE ERROR:', e.message, e.stack);
+        res.status(500).send(`
+            <html><body style="background:#030712;color:#f87171;font-family:sans-serif;padding:2rem;">
+            <h2>Payment Server Error</h2><pre>${e.message}</pre>
+            <a href="/" style="color:#ff5f00;">← Go Back</a>
+            </body></html>
+        `);
     }
 });
 
@@ -523,6 +565,35 @@ app.post('/api/payment/status', express.urlencoded({ extended: true }), async (r
         res.status(500).send("An error occurred during payment processing.");
     }
 });
+
+// ── PAYMENT DEBUG ENDPOINT — Visit https://gagnertest.onrender.com/api/payment/debug ──
+// This lets you verify encryption is working without triggering a real transaction.
+app.get('/api/payment/debug', (req, res) => {
+    try {
+        const working_key = process.env.CCAV_WORKING_KEY || '77CBADC7443F52193CDD382949264C51';
+        const access_code = process.env.CCAV_ACCESS_CODE  || 'AVRB83MH23BQ11BRQB';
+        const merchant_id = process.env.CCAV_MERCHANT_ID  || '4399469';
+
+        const testParams = `merchant_id=${merchant_id}&order_id=DEBUG_TEST&currency=INR&amount=1.00&redirect_url=https://gagnertest.onrender.com/api/payment/status&cancel_url=https://gagnertest.onrender.com/api/payment/status&language=EN`;
+        const testEnc = ccav.encrypt(testParams, working_key);
+
+        res.json({
+            status: 'ok',
+            env_key_loaded:   !!process.env.CCAV_WORKING_KEY,
+            env_access_loaded: !!process.env.CCAV_ACCESS_CODE,
+            merchant_id,
+            access_code,
+            working_key_length: working_key.length,
+            working_key_preview: working_key.substring(0, 6) + '...',
+            test_encryption_length: testEnc ? testEnc.length : 0,
+            test_encryption_ok: testEnc && testEnc.length > 10,
+            test_enc_preview: testEnc ? testEnc.substring(0, 32) + '...' : 'EMPTY'
+        });
+    } catch (e) {
+        res.status(500).json({ status: 'error', message: e.message });
+    }
+});
+
 app.get('/api/audit', async (req, res) => {
     try { res.json(await Audit.find().sort({ timestamp: -1 }).limit(100)); }
     catch (e) { res.status(500).json({ error: e.message }); }
