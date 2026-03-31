@@ -15,15 +15,15 @@ const PORT = process.env.PORT || 5000;
 // --- MANUAL CORS HEADERS (Nuke Fix) ---
 app.use((req, res, next) => {
     const origin = req.header('Origin');
-    if (origin && (origin.includes('vercel.app') || origin.includes('localhost'))) {
+    const allowedOrigins = ['https://gagnersports.com', 'https://www.gagnersports.com', 'http://localhost:3008', 'http://localhost:3009'];
+    if (origin && allowedOrigins.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
     } else {
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Origin', 'https://gagnersports.com');
     }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
     if (req.method === 'OPTIONS') return res.sendStatus(200);
     next();
 });
@@ -443,8 +443,8 @@ app.get('/api/payment/initiate', async (req, res) => {
             `order_id=${orderId}`,
             `currency=INR`,
             `amount=${finalAmount}`,
-            `redirect_url=https://gagnertest.onrender.com/api/payment/status`,
-            `cancel_url=https://gagnertest.onrender.com/api/payment/status`,
+            `redirect_url=https://gagnersports.com/api/ccavResponseHandler`,
+            `cancel_url=https://gagnersports.com/api/ccavResponseHandler`,
             `language=EN`
         ].join('&');
 
@@ -512,7 +512,7 @@ app.get('/api/payment/initiate', async (req, res) => {
  * 2. Response Webhook: CC Avenue posts data here after transaction
  * Note: Body-parser must handle urlencoded for this to work as form data
  */
-app.post('/api/payment/status', express.urlencoded({ extended: true }), async (req, res) => {
+app.post('/api/ccavResponseHandler', express.urlencoded({ extended: true }), async (req, res) => {
     try {
         const { encResp } = req.body;
         // MASTER KEY SYNC (Hardcoded per user workaround)
@@ -535,7 +535,7 @@ app.post('/api/payment/status', express.urlencoded({ extended: true }), async (r
 
         console.log(`Payment Response for ${order_id}: ${order_status}`);
 
-        let redirectUrl = 'https://pro-22-03.vercel.app';
+        let redirectUrl = 'https://gagnersports.com';
 
         if (order_status === 'Success') {
             await Participant.updateMany(
@@ -566,6 +566,18 @@ app.post('/api/payment/status', express.urlencoded({ extended: true }), async (r
     }
 });
 
+// --- CCAV ORIGIN DEBUG ---
+app.get('/api/ccav-who-am-i', (req, res) => {
+    res.json({
+        msg: 'Origin Debug Endpoint',
+        origin: req.header('Origin'),
+        referer: req.header('Referer'),
+        host: req.header('Host'),
+        forwarded: req.header('X-Forwarded-For'),
+        f_host: req.header('X-Forwarded-Host')
+    });
+});
+
 // ── PAYMENT DEBUG ENDPOINT — Visit https://gagnertest.onrender.com/api/payment/debug ──
 // This lets you verify encryption is working without triggering a real transaction.
 app.get('/api/payment/debug', (req, res) => {
@@ -574,7 +586,7 @@ app.get('/api/payment/debug', (req, res) => {
         const access_code = process.env.CCAV_ACCESS_CODE  || 'AVRB83MH23BQ11BRQB';
         const merchant_id = process.env.CCAV_MERCHANT_ID  || '4399469';
 
-        const testParams = `merchant_id=${merchant_id}&order_id=DEBUG_TEST&currency=INR&amount=1.00&redirect_url=https://gagnertest.onrender.com/api/payment/status&cancel_url=https://gagnertest.onrender.com/api/payment/status&language=EN`;
+        const testParams = `merchant_id=${merchant_id}&order_id=DEBUG_TEST&currency=INR&amount=1.00&redirect_url=https://gagnersports.com/api/ccavResponseHandler&cancel_url=https://gagnersports.com/api/ccavResponseHandler&language=EN`;
         const testEnc = ccav.encrypt(testParams, working_key);
 
         res.json({
