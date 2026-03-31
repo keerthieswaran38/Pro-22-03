@@ -229,6 +229,19 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
 
     return (
         <div className="registration-mad-container" style={{ minHeight: '100vh', background: '#020408', color: '#fff', paddingTop: '100px', paddingBottom: '80px', position: 'relative', overflowX: 'hidden' }}>
+            
+            {/* REDIRECTION OVERLAY */}
+            {loading && (
+                <div className="payment-handshake-overlay">
+                    <div className="ph-content">
+                        <div className="ph-spinner"></div>
+                        <h3>SECURE PAYMENT HANDSHAKE</h3>
+                        <p>Redirecting to CCAvenue Payment Gateway...</p>
+                        <span className="ph-note">Please do not refresh or close this window</span>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-glow-orb" style={{ position: 'absolute', top: '10%', right: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(255, 95, 0, 0.08) 0%, transparent 70%)', filter: 'blur(100px)', zIndex: 0 }}></div>
             <div className="bg-glow-orb" style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(0, 200, 83, 0.05) 0%, transparent 70%)', filter: 'blur(80px)', zIndex: 0 }}></div>
 
@@ -472,6 +485,33 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 .registration-mad-container {
                     font-family: 'Outfit', sans-serif;
                 }
+
+                /* ============ REDIRECTION OVERLAY ============ */
+                .payment-handshake-overlay {
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(2, 4, 8, 0.98);
+                    backdrop-filter: blur(10px);
+                    z-index: 9999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .ph-content { text-align: center; }
+                .ph-spinner {
+                    width: 60px; height: 60px;
+                    border: 3px solid rgba(255, 95, 0, 0.2);
+                    border-top-color: var(--primary);
+                    border-radius: 50%;
+                    animation: spinPH 1s linear infinite;
+                    margin: 0 auto 2rem;
+                    box-shadow: 0 0 30px rgba(255, 95, 0, 0.2);
+                }
+                @keyframes spinPH { to { transform: rotate(360deg); } }
+                .ph-content h3 { font-size: 1.5rem; letter-spacing: 4px; font-weight: 900; color: #fff; margin-bottom: 0.5rem; }
+                .ph-content p { color: rgba(255,255,255,0.4); font-size: 1rem; margin-bottom: 2rem; }
+                .ph-note { font-size: 0.7rem; color: var(--primary); font-weight: 800; letter-spacing: 2px; }
+
                 .reg-info-glass {
                     padding-top: 2rem;
                 }
