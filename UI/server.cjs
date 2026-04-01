@@ -411,20 +411,28 @@ app.get('/api/payment/initiate', async (req, res) => {
             return res.status(400).send('No participants provided');
         }
 
-        // ── Read from env vars (Render Dashboard), fall back to hardcoded values ──
-        const working_key = (process.env.CCAV_WORKING_KEY || '77CBADC7443F52193CDD382949264C51').trim();
-        const access_code = (process.env.CCAV_ACCESS_CODE  || 'AVRB83MH23BQ11BRQB').trim();
-        const merchant_id = (process.env.CCAV_MERCHANT_ID  || '4399469').trim();
+        // ── 1. DYNAMIC DOMAIN DETECTION (Root vs WWW) ──
+        const origin = req.get('origin') || '';
+        const isWWW = origin.includes('www.gagnersports.com');
 
-        // Guard: if the key is somehow blank after all fallbacks, fail loudly
-        if (!working_key || working_key.length < 10) {
-            console.error('❌ CRITICAL: CCAV Working Key is missing or too short!');
-            return res.status(500).json({ error: 'Payment configuration error: Working key not set.' });
+        // ── 2. EXACT DASHBOARD MAPPINGS (Step 958 Verified) ──
+        let access_code, working_key;
+        const merchant_id = '4399469'; // Hardcoded for Absolute Safety
+
+        if (isWWW) {
+            // Dashboard: https://www.gagnersports.com
+            access_code = 'AVDG84MJ95AO29GDCA';
+            working_key = '5A8096D2CCCAAA0EA895860C2A314CA4';
+        } else {
+            // Dashboard: https://gagnersports.com
+            access_code = 'AVRB83MH23BQ11BRQB';
+            working_key = '77CBADC7443F52193CDD382949264C51';
         }
 
-        console.log(`🔑 JSON Handshake — Merchant: ${merchant_id}, Key length: ${working_key.length}, Access: ${access_code}`);
+        console.log(`🔑 PAYMENT HANDSHAKE [${isWWW ? 'WWW' : 'ROOT'}]`);
+        console.log(`   Merchant: ${merchant_id}, Access: ${access_code}`);
 
-        // Save participants as Pending BEFORE redirecting to payment
+        // Save participants as Pending
         const participantDocs = participants.map(p => ({
             ...p,
             eventSlug: eventID,
@@ -437,7 +445,6 @@ app.get('/api/payment/initiate', async (req, res) => {
 
         const finalAmount = Number(amount) > 0 ? Number(amount).toFixed(2) : '1.00';
 
-        // merchant_id MUST be inside the encrypted string per CC Avenue spec
         const requestParams = [
             `merchant_id=${merchant_id}`,
             `order_id=${orderId}`,
@@ -448,23 +455,19 @@ app.get('/api/payment/initiate', async (req, res) => {
             `language=EN`
         ].join('&');
 
-        console.log('🔒 Encrypting payload:', requestParams);
-
         const encRequest = ccav.encrypt(requestParams, working_key);
 
-        if (!encRequest || encRequest.length < 10) {
-            throw new Error(`Encryption produced empty/short output (len=${encRequest ? encRequest.length : 0})`);
-        }
-        console.log(`✅ Encrypted successfully. encRequest length: ${encRequest.length}`);
-        console.log(`   First 32 chars: ${encRequest.substring(0, 32)}...`);
+        // ── INTEGRATION VERIFICATION LOGGING ──
+        console.log('---------------- CC AVENUE DEBUG ----------------');
+        console.log('PLAIN TEXT:', requestParams);
+        console.log('ENC REQUEST:', encRequest);
+        console.log('------------------------------------------------');
 
-        // ── JSON HANDSHAKE: Send raw data to frontend at gagnersports.com ──
-        // This ensures the actual POST to CCAvenue happens FROM the live domain context.
         res.json({
             success: true,
-            encRequest,
-            access_code,
-            merchant_id,
+            encRequest: encRequest.toString(),
+            access_code: access_code.toString(),
+            merchant_id: merchant_id.toString(),
             gateway_url: 'https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction'
         });
 
