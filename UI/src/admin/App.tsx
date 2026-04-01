@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Skeleton, ConfigProvider } from 'antd';
 import { isLoggedIn, logout, getAdminEmail } from '../shared/utils/auth';
 import { getGagnerTheme, getPalette, type ThemeMode } from '../shared/theme';
@@ -145,7 +145,7 @@ export default function AdminApp() {
   return (
     <ThemeContext.Provider value={{ mode, toggle }}>
       <ConfigProvider theme={getGagnerTheme(mode)}>
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/admin/login" element={<LoginPage />} />
             <Route
@@ -157,7 +157,7 @@ export default function AdminApp() {
               }
             />
           </Routes>
-        </BrowserRouter>
+        </HashRouter>
       </ConfigProvider>
     </ThemeContext.Provider>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEvents, useCoupons, useLeaderboard, useCMSContent } from '../shared/hooks/useSync';
 
 declare const gsap: any;
@@ -225,7 +225,7 @@ export default function UserApp() {
   }));
 
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       {/* Waking up Render server (amber, non-alarming) */}
       {isWakingUp && !dataTimeout && isStillLoading && (
           <div style={{ position:'fixed', top:0, left:0, right:0, background:'rgba(180,120,0,0.95)', color:'#fff', zIndex:99999, padding:'8px 16px', textAlign:'center', fontSize:'13px', fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:'10px' }}>
@@ -253,6 +253,6 @@ export default function UserApp() {
           </Routes>
         </Suspense>
       </UserLayout>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
