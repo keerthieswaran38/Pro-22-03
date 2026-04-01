@@ -411,37 +411,21 @@ app.get('/api/payment/initiate', async (req, res) => {
             return res.status(400).send('No participants provided');
         }
 
-        // ── 1. DYNAMIC DOMAIN DETECTION (Root vs WWW) ──
-        const origin = req.get('origin') || '';
+        // ── 1. DYNAMIC DOMAIN DETECTION ──
+        const origin = req.get('origin') || req.get('referer') || '';
         const isWWW = origin.includes('www.gagnersports.com');
 
-        // ── 2. EXACT DASHBOARD MAPPINGS (Step 958 Verified) ──
+        // ── 2. HARDCODED LIVE CREDENTIALS (Step 958 Verified) ──
         let access_code, working_key;
-        const merchant_id = '4399469'; // Hardcoded for Absolute Safety
+        const merchant_id = '4399469'; // Stated as String
 
         if (isWWW) {
-            // Dashboard: https://www.gagnersports.com
-            access_code = 'AVDG84MJ95AO29GDCA';
+            access_code = 'AVDG84MJ95AO29GDCA'; 
             working_key = '5A8096D2CCCAAA0EA895860C2A314CA4';
         } else {
-            // Dashboard: https://gagnersports.com
             access_code = 'AVRB83MH23BQ11BRQB';
             working_key = '77CBADC7443F52193CDD382949264C51';
         }
-
-        console.log(`🔑 PAYMENT HANDSHAKE [${isWWW ? 'WWW' : 'ROOT'}]`);
-        console.log(`   Merchant: ${merchant_id}, Access: ${access_code}`);
-
-        // Save participants as Pending
-        const participantDocs = participants.map(p => ({
-            ...p,
-            eventSlug: eventID,
-            orderId: orderId,
-            paymentStatus: 'Pending',
-            isPaid: false,
-            registeredAt: new Date().toISOString()
-        }));
-        await Participant.insertMany(participantDocs);
 
         const finalAmount = Number(amount) > 0 ? Number(amount).toFixed(2) : '1.00';
 
@@ -457,17 +441,15 @@ app.get('/api/payment/initiate', async (req, res) => {
 
         const encRequest = ccav.encrypt(requestParams, working_key);
 
-        // ── INTEGRATION VERIFICATION LOGGING ──
-        console.log('---------------- CC AVENUE DEBUG ----------------');
-        console.log('PLAIN TEXT:', requestParams);
-        console.log('ENC REQUEST:', encRequest);
-        console.log('------------------------------------------------');
+        // ── VERIFICATION LOGGING ──
+        console.log(`[AUTH] isWWW: ${isWWW} | Access: ${access_code.substring(0, 4)}...`);
+        console.log(`[AUTH] ENC LENGTH: ${encRequest.length}`);
 
         res.json({
             success: true,
-            encRequest: encRequest.toString(),
-            access_code: access_code.toString(),
-            merchant_id: merchant_id.toString(),
+            encRequest: String(encRequest),
+            access_code: String(access_code),
+            merchant_id: String(merchant_id),
             gateway_url: 'https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction'
         });
 

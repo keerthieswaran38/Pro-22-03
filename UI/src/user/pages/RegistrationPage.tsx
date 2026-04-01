@@ -167,6 +167,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
             form.method = 'POST';
             form.action = gateway_url;
             form.target = '_top'; // Force top-level navigation to ensure clean header passing
+            form.enctype = 'application/x-www-form-urlencoded'; // Ensure standard form-data format
 
             // Ensure the Referrer Policy is set explicitly for this cross-origin POST
             const meta = document.createElement('meta');
