@@ -402,59 +402,102 @@ app.get('/api/payment/initiate', async (req, res) => {
     try {
         const { amount, orderId, data } = req.query;
 
+        // --- PRODUCTION LOGGING ---
+        console.log(`[PAYMENT_INIT] Initiating for Order: ${orderId}`);
+        console.log(`[PAYER_CONTEXT] Referer: ${req.get('referer') || 'Direct'}`);
+
         if (!data || !amount || !orderId) return res.status(400).send("Missing query parameters");
 
         const payload = JSON.parse(decodeURIComponent(data));
-        const { eventID, participants } = payload;
+        
+        // --- 1. STRICT DOMAIN MAPPING ---
+        // Based on Step 958 Dashboard Screenshot
+        const referer = req.get('referer') || '';
+        const isWWW = referer.includes('www.gagnersports.com');
 
-        if (!participants || !Array.isArray(participants) || participants.length === 0) {
-            return res.status(400).send('No participants provided');
-        }
-
-        // ── 1. DYNAMIC DOMAIN DETECTION ──
-        const origin = req.get('origin') || req.get('referer') || '';
-        const isWWW = origin.includes('www.gagnersports.com');
-
-        // ── 2. HARDCODED LIVE CREDENTIALS (Step 958 Verified) ──
+        // FORCE ROOT-DOMAIN CREDENTIALS IF ON GAGNERSPORTS.COM (NON-WWW)
+        const merchant_id = '4399469';
         let access_code, working_key;
-        const merchant_id = '4399469'; // Stated as String
 
         if (isWWW) {
             access_code = 'AVDG84MJ95AO29GDCA'; 
             working_key = '5A8096D2CCCAAA0EA895860C2A314CA4';
         } else {
+            // Using the Starred (*) master key for Root domain
             access_code = 'AVRB83MH23BQ11BRQB';
             working_key = '77CBADC7443F52193CDD382949264C51';
         }
 
         const finalAmount = Number(amount) > 0 ? Number(amount).toFixed(2) : '1.00';
 
+        // --- 2. EXACT REDIRECT URL ENFORCEMENT ---
+        const redirect_url = 'https://gagnersports.com/api/ccavResponseHandler';
+        const cancel_url = 'https://gagnersports.com/failure';
+
         const requestParams = [
             `merchant_id=${merchant_id}`,
             `order_id=${orderId}`,
             `currency=INR`,
             `amount=${finalAmount}`,
-            `redirect_url=https://gagnersports.com/api/ccavResponseHandler`,
-            `cancel_url=https://gagnersports.com/failure`,
+            `redirect_url=${redirect_url}`,
+            `cancel_url=${cancel_url}`,
             `language=EN`
         ].join('&');
 
-        const encRequest = ccav.encrypt(requestParams, working_key);
+        const encRequestHex = ccav.encrypt(requestParams, working_key);
+        // Base64 encoding for integration safety (some versions require this)
+        const encRequestBase64 = Buffer.from(encRequestHex, 'hex').toString('base64');
 
-        // ── VERIFICATION LOGGING ──
-        console.log(`[AUTH] isWWW: ${isWWW} | Access: ${access_code.substring(0, 4)}...`);
-        console.log(`[AUTH] ENC LENGTH: ${encRequest.length}`);
+        console.log(`[AUTH_HANDSHAKE] Success | Domain: ${isWWW ? 'WWW' : 'ROOT'} | HexLen: ${encRequestHex.length}`);
 
         res.json({
             success: true,
-            encRequest: String(encRequest),
-            access_code: String(access_code),
-            merchant_id: String(merchant_id),
+            encRequest: encRequestHex.toString(),
+            encRequestBase64: encRequestBase64.toString(), // Optional fallback
+            access_code: access_code.toString(),
+            merchant_id: merchant_id.toString(),
             gateway_url: 'https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction'
         });
 
     } catch (e) {
-        console.error('PAYMENT INITIATE ERROR:', e.message);
+        console.error('PAYMENT ERROR:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// --- 4. HANDSHAKE TEST ENDPOINT ---
+app.get('/api/test-ccav', async (req, res) => {
+    try {
+        const working_key = '77CBADC7443F52193CDD382949264C51';
+        const access_code = 'AVRB83MH23BQ11BRQB';
+        const merchant_id = '4399469';
+        
+        const testParams = `merchant_id=${merchant_id}&order_id=TEST_${Date.now()}&currency=INR&amount=1.00&redirect_url=https://gagnersports.com/api/ccavResponseHandler&cancel_url=https://gagnersports.com/failure&language=EN`;
+        const encRequest = ccav.encrypt(testParams, working_key);
+
+        // This simulates what the browser does, but from the server IP
+        // This helps verify if the IP is whitelisted at CC Avenue
+        const fetch = (await import('node-fetch')).default;
+        const body = new URLSearchParams();
+        body.append('encRequest', encRequest);
+        body.append('access_code', access_code);
+        body.append('merchant_id', merchant_id);
+        body.append('command', 'initiateTransaction');
+
+        const response = await fetch('https://secure.ccavenue.com/transaction/transaction.do', {
+            method: 'POST',
+            body: body,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        const text = await response.text();
+        res.json({
+            success: true,
+            server_ip: req.ip,
+            ccavenue_status: response.status,
+            ccavenue_response_preview: text.substring(0, 500)
+        });
+    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
