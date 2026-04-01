@@ -7,12 +7,17 @@ const crypto = require('crypto');
  * @returns {string} - The encrypted hex string.
  */
 function encrypt(plainText, workingKey) {
-    const m = crypto.createHash('md5');
-    m.update(workingKey);
-    const key = m.digest();
+    // 1. Derive 128-bit key from Working Key (Standard for Integration Kits)
+    const m = crypto.createHash('md5').update(String(workingKey)).digest();
+    
+    // 2. Initialize Null IV (16 zero bytes) as required by CCAvenue
     const iv = Buffer.alloc(16, 0);
-    const cipher = crypto.createCipheriv('aes-128-cbc', key, iv);
-    let encoded = cipher.update(plainText, 'utf8', 'hex');
+    
+    // 3. Create Cipher with explicit padding
+    const cipher = crypto.createCipheriv('aes-128-cbc', m, iv);
+    cipher.setAutoPadding(true); // Enforce PKCS7 (Standard)
+
+    let encoded = cipher.update(String(plainText), 'utf8', 'hex');
     encoded += cipher.final('hex');
     return encoded;
 }
@@ -24,12 +29,11 @@ function encrypt(plainText, workingKey) {
  * @returns {string} - The decrypted plain text.
  */
 function decrypt(encText, workingKey) {
-    const m = crypto.createHash('md5');
-    m.update(workingKey);
-    const key = m.digest();
+    const m = crypto.createHash('md5').update(String(workingKey)).digest();
     const iv = Buffer.alloc(16, 0);
-    const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
-    let decoded = decipher.update(encText, 'hex', 'utf8');
+    const decipher = crypto.createDecipheriv('aes-128-cbc', m, iv);
+    decipher.setAutoPadding(true);
+    let decoded = decipher.update(String(encText), 'hex', 'utf8');
     decoded += decipher.final('utf8');
     return decoded;
 }
