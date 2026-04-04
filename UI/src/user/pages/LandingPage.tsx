@@ -53,8 +53,8 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
 
         let mm = gsap.matchMedia();
         
-        // Horizontal scroll ONLY on screens > 480px
-        mm.add("(min-width: 481px)", () => {
+        // Horizontal scroll ONLY on Desktop/Large Tablet (> 768px)
+        mm.add("(min-width: 769px)", () => {
             const getScrollAmount = () => {
                 const trackWidth = servicesTrack.scrollWidth;
                 const viewportWidth = document.documentElement.clientWidth;
@@ -108,8 +108,8 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
             };
         });
 
-        // On mobile (≤480px): ensure no horizontal scrolling, stack cards vertically
-        mm.add("(max-width: 480px)", () => {
+        // On mobile/tablet (≤768px): ensure no horizontal GSAP scrolling, fallback to CSS layouts
+        mm.add("(max-width: 768px)", () => {
             gsap.set(servicesTrack, { clearProps: "all", x: 0 });
             return () => {};
         });
@@ -124,7 +124,7 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
             scrollTrigger: {
                 trigger: heading,
                 start: "top 90%",
-                toggleActions: "play none none none"
+                toggleActions: "play none none reverse"
             }
         });
         if (filled) {
@@ -139,24 +139,24 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
     gsap.utils.toArray('.event-stack-item').forEach((item: any) => {
         const isEven = item.matches(':nth-child(even)');
         gsap.fromTo(item.querySelector('.esi-img'), 
-            { x: isEven ? 100 : -100, opacity: 0 },
-            { x: 0, opacity: 1, duration: 1.5, ease: "power4.out", scrollTrigger: {
+            { x: isEven ? 150 : -150, opacity: 0, rotationY: isEven ? 15 : -15 },
+            { x: 0, opacity: 1, rotationY: 0, duration: 1.5, ease: "power4.out", scrollTrigger: {
                 trigger: item,
                 start: "top 85%",
-                toggleActions: "play none none none"
+                toggleActions: "play none none reverse"
             }}
         );
         gsap.fromTo(item.querySelector('.esi-content'), 
-            { y: 60, opacity: 0 },
-            { y: 0, opacity: 1, duration: 1.2, delay: 0.2, ease: "power3.out", scrollTrigger: {
+            { y: 80, opacity: 0, scale: 0.95 },
+            { y: 0, opacity: 1, scale: 1, duration: 1.2, delay: 0.1, ease: "power3.out", scrollTrigger: {
                 trigger: item,
                 start: "top 85%",
-                toggleActions: "play none none none"
+                toggleActions: "play none none reverse"
             }}
         );
     });
 
-    // --- EVENT CARD GLOW EFFECT ---
+    // --- EVENT CARD GLOW EFFECT (Refined) ---
     const cards = document.querySelectorAll('.event-stack-item');
     cards.forEach((card: any) => {
         const glow = card.querySelector('.event-card-glow');
@@ -167,16 +167,17 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             gsap.to(glow, { 
-                x: x - 150, 
-                y: y - 150, 
-                opacity: 0.6, 
-                duration: 0.6, 
+                x: x - 100, // Reduced from 150
+                y: y - 100, 
+                opacity: 0.8, 
+                scale: 1,
+                duration: 0.3, 
                 ease: "power2.out" 
             });
         };
 
         const onBack = () => {
-            gsap.to(glow, { opacity: 0, duration: 1 });
+            gsap.to(glow, { opacity: 0, scale: 0.5, duration: 0.8 });
         };
 
         card.addEventListener('mousemove', onMouseMove);
@@ -272,7 +273,7 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
         { y: 0, opacity: 0.8, duration: 1.5, ease: "power4.out", scrollTrigger: {
             trigger: '.about-desc',
             start: "top 90%",
-            toggleActions: "play none none none"
+            toggleActions: "play none none reverse"
         }}
     );
 
@@ -442,41 +443,37 @@ export default function LandingPage({ events, leaderboard, content = [] }: { eve
           <div className="events-stack">
               {(events || []).map((item, idx) => (
                   <div key={idx} className="event-stack-item hover-target">
-                      <div className="esi-img" style={{ height: '500px', border: 'none', boxShadow: 'none', background: 'transparent' }}>
+                      <div className="esi-img" style={{ height: '320px', border: '1px solid rgba(0, 200, 83, 0.3)', boxShadow: '0 0 20px rgba(0, 200, 83, 0.1)', background: 'transparent' }}>
                           <img src={item.bgImg || `/images/${item.slug.replace(/-/g, '_')}.png`} alt={item.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '15px' }} />
+                          <div className="esi-scanner-line"></div>
                       </div>
                       <div className="esi-content">
-                          <div className="esi-meta">
-                              <span className="ec-tag">{item.tag}</span>
-                              <span className="ec-year">2026</span>
+                          <div className="esi-meta" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+                              <span className="ec-tag" style={{ padding: '0.4rem 1rem', background: 'rgba(0, 200, 83, 0.1)', color: 'var(--secondary)', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '2px' }}>{item.tag}</span>
+                              <span className="ec-year" style={{ color: 'var(--text-gray)', fontSize: '0.9rem', fontWeight: 600 }}>/// 2026</span>
                           </div>
-                          <h3>{item.title}</h3>
+                          <h3 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, marginBottom: '2rem', lineHeight: 1.1, letterSpacing: '-1px' }}>{item.title}</h3>
                           
                           <div className="esi-bottom">
-                              <div className="ec-countdown">
+                              <div className="ec-countdown" style={{ display: 'flex', gap: '1.5rem', marginBottom: '2.5rem' }}>
                                   {calculateTimeLeft(item.date) ? (
                                       <>
-                                          <div className="cd-item"><span>{calculateTimeLeft(item.date)?.d}</span><small>D</small></div>
-                                          <div className="cd-item"><span>{calculateTimeLeft(item.date)?.h}</span><small>H</small></div>
-                                          <div className="cd-item"><span>{calculateTimeLeft(item.date)?.m}</span><small>M</small></div>
-                                          <div className="cd-item accent"><span>{calculateTimeLeft(item.date)?.s}</span><small>S</small></div>
+                                          <div className="cd-item"><span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--white)' }}>{calculateTimeLeft(item.date)?.d}</span><small style={{ color: 'var(--text-gray)', marginLeft: '4px' }}>D</small></div>
+                                          <div className="cd-item"><span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--white)' }}>{calculateTimeLeft(item.date)?.h}</span><small style={{ color: 'var(--text-gray)', marginLeft: '4px' }}>H</small></div>
+                                          <div className="cd-item"><span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--white)' }}>{calculateTimeLeft(item.date)?.m}</span><small style={{ color: 'var(--text-gray)', marginLeft: '4px' }}>M</small></div>
+                                          <div className="cd-item accent"><span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary)' }}>{calculateTimeLeft(item.date)?.s}</span><small style={{ color: 'var(--primary)', marginLeft: '4px' }}>S</small></div>
                                       </>
                                   ) : (
-                                      <span className="event-started-badge">EVENT STARTED</span>
+                                      <span className="event-started-badge" style={{ padding: '0.5rem 1rem', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: 800, letterSpacing: '2px', fontSize: '0.85rem' }}>EVENT STARTED</span>
                                   )}
                               </div>
                               
-                              <div className="esi-actions" style={{ width: '100%', marginTop: 'auto', display: 'flex', justifyContent: 'flex-start' }}>
-                                  <Link to={`/register/${item.slug}`} className="btn-gagner-unique hover-target">
-                                      <div className="fragment f1"></div>
-                                      <div className="fragment f2"></div>
-                                      <div className="fragment f3"></div>
-                                      <div className="fragment f4"></div>
-                                      <div className="tech-bar t-left"></div>
-                                      <div className="tech-bar t-right"></div>
-                                      <span>BOOK NOW</span>
+                              <div className="esi-actions" style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'flex-start' }}>
+                                  <Link to={`/register/${item.slug}`} className="btn-gagner-plasma hover-target" style={{ transform: 'scale(0.9)', transformOrigin: 'left' }}>
+                                      <span className="plasma-text">BOOK NOW</span>
+                                      <div className="plasma-border"></div>
                                   </Link>
-                                  <div className="event-card-glow"></div>
+                                  <div className="event-card-glow refined-glow"></div>
                               </div>
                           </div>
                       </div>

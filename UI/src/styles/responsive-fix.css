@@ -569,11 +569,19 @@ html, body {
     /* Services */
     .services-horizontal-unique {
         min-height: auto;
+        overflow-x: hidden;
     }
     .services-pin-content {
         height: auto !important;
         min-height: auto;
         padding: 2rem 0;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none; /* Firefox */
+        -webkit-overflow-scrolling: touch;
+    }
+    .services-pin-content::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
     }
     .services-grid-unique {
         padding: 3rem 0;
@@ -581,8 +589,11 @@ html, body {
     .services-track-new {
         gap: 1.5rem;
         padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        width: max-content;
     }
     .service-slide {
+        scroll-snap-align: start;
         flex: 0 0 260px;
         height: 350px;
     }

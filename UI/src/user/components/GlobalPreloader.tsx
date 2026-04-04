@@ -96,6 +96,8 @@ export default function GlobalPreloader({ content = [] }: { content?: any[] }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    transform: 'scale(var(--preloader-scale, 1))',
+                    transformOrigin: 'center center',
                     marginBottom: '3rem'
                 }}>
                     
@@ -139,6 +141,20 @@ export default function GlobalPreloader({ content = [] }: { content?: any[] }) {
                       }} 
                     />
                 </div>
+
+                <style>{`
+                  @media (max-width: 480px) {
+                    .preloader-content-new { --preloader-scale: 0.65; }
+                    .preloader-main-title span { font-size: 1rem !important; }
+                  }
+                  @media (max-width: 768px) and (min-width: 481px) {
+                    .preloader-content-new { --preloader-scale: 0.85; }
+                    .preloader-main-title span { font-size: 1.2rem !important; }
+                  }
+                  @media (max-width: 360px) {
+                    .preloader-content-new { --preloader-scale: 0.55; }
+                  }
+                `}</style>
 
                 <div className="preloader-main-title" style={{
                     marginBottom: '1rem',
