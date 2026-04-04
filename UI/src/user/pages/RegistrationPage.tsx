@@ -8,13 +8,15 @@ interface ParticipantForm {
     email: string;
     phone: string;
     gender: string;
+    bloodGroup: string;
+    dob: string;
     age: string;
     tshirtSize: string;
     category: string;
 }
 
 const emptyForm: ParticipantForm = {
-    name: '', email: '', phone: '', gender: '', age: '', tshirtSize: '', category: ''
+    name: '', email: '', phone: '', gender: '', bloodGroup: '', dob: '', age: '', tshirtSize: '', category: ''
 };
 
 export default function RegistrationPage({ events }: { events: Record<string, GagnerEvent> }) {
@@ -90,6 +92,72 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
         return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     };
 
+    const formatPremiumDescription = (rawText: string) => {
+        if (!rawText) return 'Join us for an uncompromising experience of athletic excellence.';
+        
+        const processed = rawText
+            .replace(/ (📍|⏰|📅|🏃|🟢|💰|🥇|🥈|🥉|🎁|✔️|✓|📞|🌐|💪)/g, '\n\n$1')
+            .replace(/ (🌍 [A-Z])/g, '\n\n$1'); 
+            
+        return processed.split('\n').map((line, idx) => {
+            const trimmed = line.trim();
+            if (!trimmed) return <br key={idx} />;
+
+            const isHighlight = /^(📍|⏰|📅|🟢|🎁|📞|🌐|💰|🥇|🥈|🥉)/.test(trimmed);
+            const isBullet = /^(✔️|✓)/.test(trimmed);
+
+            if (isHighlight) {
+                return (
+                    <div key={idx} style={{
+                        background: 'rgba(255, 95, 0, 0.05)',
+                        borderLeft: '3px solid var(--primary)',
+                        padding: '1rem 1.5rem',
+                        margin: '1.2rem 0',
+                        borderRadius: '0 12px 12px 0',
+                        color: '#fff',
+                        fontWeight: 500,
+                        letterSpacing: '0.5px',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                    }}>
+                        {trimmed}
+                    </div>
+                );
+            }
+            
+            if (isBullet) {
+                return (
+                    <div key={idx} style={{
+                        display: 'flex', gap: '10px', alignItems: 'center',
+                        margin: '0.5rem 0', paddingLeft: '1rem',
+                        color: 'rgba(255,255,255,0.8)'
+                    }}>
+                        {trimmed}
+                    </div>
+                );
+            }
+
+            return (
+                <p key={idx} style={{
+                    marginBottom: '1rem',
+                    lineHeight: '1.8',
+                    fontSize: '1.05rem',
+                    color: 'rgba(255,255,255,0.7)',
+                    textAlign: 'justify'
+                }}>
+                    {trimmed}
+                </p>
+            );
+        });
+    };
+
+    const renderDescription = () => {
+        const d = event?.desc || event?.description || '';
+        if (d.includes('<p>') || d.includes('<h2>') || d.includes('<ul>')) {
+            return <div className="event-desc-premium premium-rich-text" dangerouslySetInnerHTML={{ __html: d }} />;
+        }
+        return <div className="event-desc-premium" style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{formatPremiumDescription(d)}</div>;
+    };
+
     if (!event) {
         if (isDataLoading) {
             return (
@@ -158,6 +226,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                     ...form,
                     city: 'N/A',
                     ageGroup: form.age,
+                    tshirtSize: form.tshirtSize,
                     eventSlug: event.slug || slug || '',
                     eventName: event.title,
                     registeredAt: new Date().toISOString(),
@@ -191,11 +260,11 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
     }
 
     return (
-        <div className="registration-mad-container" style={{ minHeight: '100vh', background: '#020408', color: '#fff', paddingTop: '100px', paddingBottom: '80px', position: 'relative', overflowX: 'hidden' }}>
+        <div className="registration-mad-container" style={{ background: '#020408', color: '#fff', paddingTop: '170px', paddingBottom: '30px', position: 'relative' }}>
             <div className="bg-glow-orb" style={{ position: 'absolute', top: '10%', right: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(255, 95, 0, 0.08) 0%, transparent 70%)', filter: 'blur(100px)', zIndex: 0 }}></div>
             <div className="bg-glow-orb" style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(0, 200, 83, 0.05) 0%, transparent 70%)', filter: 'blur(80px)', zIndex: 0 }}></div>
 
-            <div className="registration-content-wrapper" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', margin: '0 auto', padding: '0 4rem', display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '6rem' }}>
+            <div className="registration-content-wrapper" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', margin: '0 auto', padding: '0 4rem', display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '6rem', alignItems: 'start' }}>
                 
                 {/* LEFT INFO PANEL */}
                 <div className="reg-info-glass">
@@ -224,9 +293,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                         </div>
                     </div>
 
-                    <div className="event-desc-premium">
-                        <p>{event.desc || 'Join us for an uncompromising experience of athletic excellence.'}</p>
-                    </div>
+                    {/* Description moved to bottom */}
 
                     <div className="deliverables-unique">
                       {(event?.deliverables || []).map((d, i) => (
@@ -238,7 +305,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 </div>
 
                 {/* RIGHT FORM PANEL */}
-                <div className="reg-form-glass-wrap" ref={formRef}>
+                <div className="reg-form-glass-wrap" ref={formRef} style={{ position: 'sticky', top: '120px' }}>
                     <div className="form-glass-card">
                         <div className="form-header-premium">
                             <h2>SECURE YOUR <span className="highlight">SLOT</span></h2>
@@ -301,26 +368,31 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                                                   placeholder="00000 00000" 
                                                 />
                                             </div>
-                                            {/* Custom Dropdown for Gender */}
                                             <div className="form-group-premium">
                                                 <label>GENDER</label>
-                                                <div className="custom-select-wrap">
-                                                    <div className={`cs-current ${currentForm.gender ? 'active' : ''}`} onClick={() => {
-                                                        const el = document.getElementById('gender-dropdown');
-                                                        if (el) el.classList.toggle('show');
-                                                    }}>
-                                                        {currentForm.gender || "Select Gender"}
-                                                        <span className="cs-arrow">▼</span>
-                                                    </div>
-                                                    <div id="gender-dropdown" className="cs-options">
-                                                        {["Male", "Female", "Other"].map(opt => (
-                                                            <div key={opt} className="cs-option" onClick={() => {
-                                                                setCurrentForm(f => ({ ...f, gender: opt }));
-                                                                document.getElementById('gender-dropdown')?.classList.remove('show');
-                                                            }}>{opt}</div>
-                                                        ))}
-                                                    </div>
-                                                </div>
+                                                <select required value={currentForm.gender} onChange={e => setCurrentForm(f => ({ ...f, gender: e.target.value }))}>
+                                                    <option value="" disabled>Select Gender</option>
+                                                    {["Male", "Female", "Other"].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </select>
+                                            </div>
+
+                                            <div className="form-group-premium">
+                                                <label>BLOOD GROUP</label>
+                                                <select required value={currentForm.bloodGroup} onChange={e => setCurrentForm(f => ({ ...f, bloodGroup: e.target.value }))}>
+                                                    <option value="" disabled>Select Blood Group</option>
+                                                    {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </select>
+                                            </div>
+
+                                            <div className="form-group-premium">
+                                                <label>DATE OF BIRTH</label>
+                                                <input 
+                                                  type="date" 
+                                                  required 
+                                                  value={currentForm.dob} 
+                                                  onChange={e => setCurrentForm(f => ({ ...f, dob: e.target.value }))}
+                                                  style={{ colorScheme: 'dark' }}
+                                                />
                                             </div>
 
                                             <div className="form-group-premium">
@@ -328,35 +400,22 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                                                 <input 
                                                   type="text" 
                                                   required 
+                                                  maxLength={3}
                                                   value={currentForm.age} 
                                                   onChange={e => {
-                                                    const val = e.target.value.replace(/\D/g, ''); 
+                                                    const val = e.target.value.replace(/\D/g, '').substring(0, 3); 
                                                     setCurrentForm(f => ({ ...f, age: val }));
                                                   }} 
-                                                  placeholder="Years" 
+                                                  placeholder="000" 
                                                 />
                                             </div>
 
-                                            {/* Custom Dropdown for T-Shirt Size */}
                                             <div className="form-group-premium">
                                                 <label>T-SHIRT SIZE</label>
-                                                <div className="custom-select-wrap">
-                                                    <div className={`cs-current ${currentForm.tshirtSize ? 'active' : ''}`} onClick={() => {
-                                                        const el = document.getElementById('size-dropdown');
-                                                        if (el) el.classList.toggle('show');
-                                                    }}>
-                                                        {currentForm.tshirtSize || "Select Size"}
-                                                        <span className="cs-arrow">▼</span>
-                                                    </div>
-                                                    <div id="size-dropdown" className="cs-options">
-                                                        {['22','24','26','28','30','32','34','36'].map(opt => (
-                                                            <div key={opt} className="cs-option" onClick={() => {
-                                                                setCurrentForm(f => ({ ...f, tshirtSize: opt }));
-                                                                document.getElementById('size-dropdown')?.classList.remove('show');
-                                                            }}>{opt}</div>
-                                                        ))}
-                                                    </div>
-                                                </div>
+                                                <select required value={currentForm.tshirtSize} onChange={e => setCurrentForm(f => ({ ...f, tshirtSize: e.target.value }))}>
+                                                    <option value="" disabled>Select Size</option>
+                                                    {['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </select>
                                             </div>
                                         </div>
 
@@ -407,6 +466,8 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                                                 <div className="pc-details">
                                                     <span>📧 {p.email}</span>
                                                     <span>📱 {p.phone}</span>
+                                                    <span>🩸 {p.bloodGroup}</span>
+                                                    <span>📅 {p.dob}</span>
                                                     <span>👕 Size {p.tshirtSize}</span>
                                                 </div>
                                             </div>
@@ -431,7 +492,41 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 </div>
             </div>
 
+            {/* FULL WIDTH DESCRIPTION SECTION BELOW */}
+            <div className="full-width-desc-wrapper" style={{ maxWidth: '1400px', margin: '2rem auto 2rem auto', padding: '0 4rem', position: 'relative', zIndex: 1 }}>
+                <div className="desc-glass-panel" style={{
+                    background: 'linear-gradient(145deg, rgba(20,20,20,0.6) 0%, rgba(5,5,5,0.9) 100%)',
+                    padding: '4rem',
+                    borderRadius: '24px',
+                    border: '1px solid rgba(255,255,255,0.03)',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+                }}>
+                    <h2 style={{ fontSize: '2rem', fontWeight: 900, marginTop: 0, marginBottom: '2rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
+                        ABOUT THE <span style={{color: 'var(--primary)'}}>EVENT</span>
+                    </h2>
+                    {renderDescription()}
+                </div>
+            </div>
+
             <style>{`
+                .premium-rich-text {
+                    color: rgba(255,255,255,0.85);
+                    font-size: 1.1rem;
+                    line-height: 1.8;
+                    text-align: left;
+                }
+                .premium-rich-text p { margin-bottom: 1.2rem; }
+                .premium-rich-text h1, .premium-rich-text h2, .premium-rich-text h3 {
+                    color: #fff; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.8rem;
+                }
+                .premium-rich-text ul, .premium-rich-text ol {
+                    margin: 1rem 0; padding-left: 1.5rem;
+                    background: rgba(255,255,255,0.02);
+                    border-radius: 12px;
+                    padding: 1.2rem 1.2rem 1.2rem 2.5rem;
+                    border: 1px solid rgba(255,255,255,0.05);
+                }
+                .premium-rich-text li { margin-bottom: 0.5rem; }
                 .registration-mad-container {
                     font-family: 'Outfit', sans-serif;
                 }
@@ -622,6 +717,43 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 .cs-option:last-child { border-bottom: none; }
                 .cs-option:hover { background: var(--primary); color: #000; font-weight: 800; transform: translateX(5px); }
 
+                .custom-grid-selector {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 8px;
+                    margin-top: 5px;
+                }
+                .custom-grid-selector.sizes {
+                    grid-template-columns: repeat(4, 1fr);
+                }
+                .grid-opt {
+                    background: rgba(255,255,255,0.03);
+                    border: 1px solid rgba(255,255,255,0.08);
+                    padding: 0.8rem 0.5rem;
+                    border-radius: 10px;
+                    text-align: center;
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+                    color: rgba(255,255,255,0.4);
+                }
+                .grid-opt:hover {
+                    border-color: rgba(255,95,0,0.4);
+                    background: rgba(255,95,0,0.05);
+                    color: #fff;
+                }
+                .grid-opt.active {
+                    background: var(--primary);
+                    border-color: var(--primary);
+                    color: #000;
+                    box-shadow: 0 0 15px rgba(255,95,0,0.3);
+                }
+                @media (max-width: 600px) {
+                    .custom-grid-selector { grid-template-columns: repeat(4, 1fr); }
+                    .form-group-premium.full-width-sm { grid-column: span 1; }
+                }
+
                 @keyframes cs-fade { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
                 .form-group-premium select option { background: #111; color: #fff; padding: 10px; }
@@ -793,11 +925,19 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
 
                 /* ============ RESPONSIVE ============ */
                 @media (max-width: 1100px) {
-                    .registration-content-wrapper { grid-template-columns: 1fr !important; gap: 3rem !important; padding: 0 2rem !important; }
+                    .registration-content-wrapper { grid-template-columns: 1fr !important; gap: 3rem !important; padding: 0 3rem !important; }
                     .reg-info-glass { text-align: center; display: flex; flex-direction: column; align-items: center; }
                     .event-desc-premium { margin: 0 auto 2rem; }
                     .deliverables-unique { justify-content: center; }
                     .back-link-unique { justify-content: center; margin-bottom: 2rem; }
+                    .form-glass-card { padding: 3rem !important; }
+                }
+                @media (max-width: 768px) {
+                    .registration-content-wrapper { padding: 0 2rem !important; gap: 2.5rem !important; }
+                    .event-title-extreme { font-size: clamp(2rem, 8vw, 3.5rem) !important; margin-bottom: 2.5rem !important; line-height: 1.1; }
+                    .form-glass-card { padding: 2.5rem 1.5rem !important; }
+                    .form-header-premium h2 { font-size: 1.8rem; }
+                    .form-grid-premium { gap: 1rem; }
                 }
                 @media (max-width: 600px) {
                     .registration-content-wrapper { padding: 0 1.2rem !important; gap: 2rem !important; }
@@ -809,6 +949,25 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                     .tc-value { font-size: 3rem; }
                     .tc-btn { width: 44px; height: 44px; font-size: 1.3rem; }
                     .pc-details { flex-direction: column; gap: 0.3rem; }
+                    .btn-cancel-edit { margin-top: 1rem; padding: 1rem; }
+                }
+                @media (max-width: 480px) {
+                    .registration-content-wrapper { padding: 0 1rem !important; gap: 1.5rem !important; }
+                    .form-glass-card { padding: 1.5rem 1rem !important; border-radius: 16px !important; }
+                    .event-title-extreme { font-size: 1.8rem !important; }
+                    .form-header-premium h2 { font-size: 1.5rem; text-align: center; }
+                    .form-header-premium .header-line { margin: 0 auto 2rem; }
+                    .tc-selector { flex-wrap: wrap; }
+                    .btn-submit-premium-mad { padding: 1rem; font-size: 0.8rem; }
+                    .cat-card-option { padding: 0.8rem; }
+                    .cat-card-option .cat-name { font-size: 0.75rem; }
+                    .cat-card-option .cat-price { font-size: 0.9rem; }
+                }
+                @media (max-width: 360px) {
+                    .registration-content-wrapper { padding: 0 0.8rem !important; }
+                    .event-title-extreme { font-size: 1.5rem !important; }
+                    .tc-value { font-size: 2.5rem; }
+                    .stat-card-mini { padding: 1rem; }
                 }
             `}</style>
         </div>

@@ -24,6 +24,8 @@ export default function EventDetailsPage({ events, coupons }: { events: any, cou
     gsap.fromTo('.ed-main', { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power3.out", delay: 1.0 });
   }, [slug]);
 
+  // Removed intelligent parser as we now render premium HTML directly.
+
   if (!event) {
     if (isDataLoading) {
         return (
@@ -79,12 +81,75 @@ export default function EventDetailsPage({ events, coupons }: { events: any, cou
                   <div className="ed-meta-card hover-target" style={{gridColumn: 'span 2'}}><div className="ed-meta-label">VENUE</div><div className="ed-meta-value">{event.venue || 'Chennai, India'}</div></div>
               </div>
 
-              <div className="ed-section">
-                  <h2 className="ed-section-title">ABOUT THE <span className="green" style={{marginLeft: '8px'}}>EVENT</span></h2>
-                  <div className="ed-desc-text">
-                      <p>{event.description || event.desc || 'Join us for this amazing premium event!'}</p>
-                  </div>
+              <div className="ed-section" style={{
+                    background: 'linear-gradient(145deg, rgba(20,20,20,0.6) 0%, rgba(5,5,5,0.9) 100%)',
+                    padding: '3rem',
+                    borderRadius: '24px',
+                    border: '1px solid rgba(255,255,255,0.03)',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+              }}>
+                  <h2 className="ed-section-title" style={{ marginBottom: '2rem' }}>ABOUT THE <span className="green" style={{marginLeft: '8px'}}>EVENT</span></h2>
+                  <div 
+                      className="ed-desc-text premium-rich-text" 
+                      dangerouslySetInnerHTML={{ __html: event.description || event.desc || '<p>Join us for this amazing premium event!</p>' }}
+                  />
               </div>
+
+              <style>{`
+                  .premium-rich-text {
+                      color: rgba(255,255,255,0.85);
+                      font-size: 1.15rem;
+                      line-height: 2;
+                      text-align: left;
+                  }
+                  .premium-rich-text p {
+                      margin-bottom: 1.5rem;
+                  }
+                  .premium-rich-text h1, 
+                  .premium-rich-text h2, 
+                  .premium-rich-text h3 {
+                      color: #fff;
+                      font-weight: 800;
+                      margin-top: 2rem;
+                      margin-bottom: 1rem;
+                      letter-spacing: -0.5px;
+                  }
+                  .premium-rich-text h2 {
+                      font-size: 1.8rem;
+                      border-bottom: 1px solid rgba(255,255,255,0.1);
+                      padding-bottom: 0.5rem;
+                  }
+                  .premium-rich-text h3 {
+                      font-size: 1.4rem;
+                      color: var(--primary);
+                  }
+                  .premium-rich-text ul, 
+                  .premium-rich-text ol {
+                      margin: 1.5rem 0;
+                      padding-left: 1.5rem;
+                      background: rgba(255,255,255,0.02);
+                      border-radius: 12px;
+                      padding: 1.5rem 1.5rem 1.5rem 3rem;
+                      border: 1px solid rgba(255,255,255,0.05);
+                  }
+                  .premium-rich-text li {
+                      margin-bottom: 0.8rem;
+                  }
+                  .premium-rich-text a {
+                      color: var(--secondary);
+                      text-decoration: none;
+                      border-bottom: 1px dashed var(--secondary);
+                      transition: all 0.3s;
+                  }
+                  .premium-rich-text a:hover {
+                      color: #fff;
+                      border-bottom-color: #fff;
+                  }
+                  .premium-rich-text strong {
+                      color: #fff;
+                      font-weight: 800;
+                  }
+              `}</style>
 
               <div className="ed-section">
                   <h2 className="ed-section-title">CATEGORIES & <span className="green" style={{marginLeft: '8px'}}>PRIZES</span></h2>
@@ -156,14 +221,9 @@ export default function EventDetailsPage({ events, coupons }: { events: any, cou
                           <label className="ed-label">SELECT CATEGORY</label>
                       </div>
                       
-                      <button type="submit" className="btn-gagner-unique hover-target">
-                          <div className="fragment f1"></div>
-                          <div className="fragment f2"></div>
-                          <div className="fragment f3"></div>
-                          <div className="fragment f4"></div>
-                          <div className="tech-bar t-left"></div>
-                          <div className="tech-bar t-right"></div>
-                          <span>CONFIRM ENTRY</span>
+                      <button type="submit" className="btn-gagner-plasma hover-target">
+                          <span className="plasma-text">BOOK NOW</span>
+                          <div className="plasma-border"></div>
                       </button>
                   </form>
               </div>
