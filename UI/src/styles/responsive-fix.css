@@ -1060,3 +1060,62 @@ html, body {
         font-size: 1.2rem !important;
     }
 }
+
+/* ============================================================
+   REGISTRATION PAGE SPECIFIC FIXES
+   ============================================================ */
+
+/* Ensure proper spacing from fixed navbar */
+.registration-mad-container {
+    padding-top: 200px !important;
+}
+
+@media (max-width: 1440px) {
+    .registration-mad-container { padding-top: 180px !important; }
+}
+
+@media (max-width: 1024px) {
+    .registration-mad-container { padding-top: 160px !important; }
+    .registration-content-wrapper { grid-template-columns: 1fr !important; gap: 3rem !important; }
+    .reg-form-glass-wrap { position: relative !important; top: 0 !important; }
+}
+
+@media (max-width: 768px) {
+    .registration-mad-container { padding-top: 140px !important; }
+    .event-title-extreme { font-size: 2.5rem !important; text-align: center; margin-bottom: 2rem !important; }
+    .form-glass-card { padding: 2rem 1.5rem !important; }
+}
+
+@media (max-width: 480px) {
+    .registration-mad-container { padding-top: 120px !important; }
+    .event-title-extreme { font-size: 2rem !important; }
+    .form-header-premium h2 { font-size: 1.5rem !important; }
+    .tc-value { font-size: 2.5rem !important; }
+    .filled-participants-list { margin-top: 1.5rem !important; }
+}
+
+/* Fix category card pricing smashing */
+.cat-card-option .cat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.cat-card-option .cat-name {
+    display: block !important;
+    line-height: 1.2 !important;
+}
+.cat-card-option .cat-price {
+    display: block !important;
+    margin-top: 2px !important;
+}
+
+/* Fix stat card label/value overlap */
+.stat-card-mini {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+}
+.stat-card-mini .label, .stat-card-mini .value {
+    display: block !important;
+    line-height: 1.4 !important;
+}

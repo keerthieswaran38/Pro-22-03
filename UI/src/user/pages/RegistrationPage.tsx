@@ -230,7 +230,8 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                     eventSlug: event.slug || slug || '',
                     eventName: event.title,
                     registeredAt: new Date().toISOString(),
-                    paymentStatus: 'Pending'
+                    paymentStatus: 'Pending',
+                    isPaid: false
                 };
                 await saveParticipant(p);
             }
@@ -260,7 +261,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
     }
 
     return (
-        <div className="registration-mad-container" style={{ background: '#020408', color: '#fff', paddingTop: '170px', paddingBottom: '30px', position: 'relative' }}>
+        <div className="registration-mad-container" style={{ background: '#020408', color: '#fff', paddingTop: '220px', paddingBottom: '80px', position: 'relative', overflow: 'hidden' }}>
             <div className="bg-glow-orb" style={{ position: 'absolute', top: '10%', right: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(255, 95, 0, 0.08) 0%, transparent 70%)', filter: 'blur(100px)', zIndex: 0 }}></div>
             <div className="bg-glow-orb" style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(0, 200, 83, 0.05) 0%, transparent 70%)', filter: 'blur(80px)', zIndex: 0 }}></div>
 
@@ -276,7 +277,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                         <span className="dot"></span> {event.tag || 'ELITE EVENT'}
                     </div>
 
-                    <h1 className="event-title-extreme">{event.title}</h1>
+                    <h1 className="event-title-extreme" style={{ overflowWrap: 'break-word', wordWrap: 'break-word', hyphens: 'auto' }}>{event.title}</h1>
                     
                     <div className="event-stats-glass-grid">
                         <div className="stat-card-mini">
@@ -305,7 +306,7 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 </div>
 
                 {/* RIGHT FORM PANEL */}
-                <div className="reg-form-glass-wrap" ref={formRef} style={{ position: 'sticky', top: '120px' }}>
+                <div className="reg-form-glass-wrap" ref={formRef} style={{ position: 'sticky', top: '160px', zIndex: 10 }}>
                     <div className="form-glass-card">
                         <div className="form-header-premium">
                             <h2>SECURE YOUR <span className="highlight">SLOT</span></h2>
@@ -335,8 +336,8 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                                 {/* Progress */}
                                 <div className="reg-progress-bar">
                                     <div className="rpb-text">
-                                        <span>{editingIndex !== null ? `EDITING PARTICIPANT ${editingIndex + 1}` : `PARTICIPANT ${participants.length + 1} OF ${ticketCount}`}</span>
-                                        <span className="rpb-count">{participants.length}/{ticketCount} FILLED</span>
+                                        <span style={{ color: '#fff', opacity: 0.9 }}>{editingIndex !== null ? `EDITING: #${editingIndex + 1}` : `ENTRY ${participants.length + 1} OF ${ticketCount}`}</span>
+                                        <span className="rpb-count" style={{ color: 'var(--secondary)', fontWeight: 900 }}>{participants.length}/{ticketCount} COMPLETED</span>
                                     </div>
                                     <div className="rpb-track">
                                         <div className="rpb-fill" style={{ width: `${(participants.length / ticketCount) * 100}%` }}></div>
@@ -424,9 +425,9 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                                             <div className="cat-options-grid">
                                                 {(event?.categories || []).map((cat, i) => (
                                                     <div key={i} className={`cat-card-option ${currentForm.category === cat.name ? 'selected' : ''}`} onClick={() => setCurrentForm(f => ({ ...f, category: cat.name }))}>
-                                                        <div className="cat-info">
+                                                        <div className="cat-info" style={{ flex: 1, marginRight: '1rem' }}>
                                                             <span className="cat-name">{cat.name}</span>
-                                                            <span className="cat-price">₹{cat.price}</span>
+                                                            <span className="cat-price">₹ {cat.price}</span>
                                                         </div>
                                                         <div className="cat-check"></div>
                                                     </div>
@@ -568,18 +569,19 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                     font-weight: 900;
                     line-height: 0.95;
                     letter-spacing: -2px;
-                    margin-bottom: 3rem;
+                    margin-bottom: 2.5rem;
                     text-transform: uppercase;
-                    background: linear-gradient(to bottom, #fff 0%, #eee 40%, rgba(255,255,255,0.7));
+                    background: linear-gradient(to bottom, #fff 0%, #ddd 60%, rgba(255,255,255,0.6));
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
+                    word-break: break-word;
                 }
 
                 .event-stats-glass-grid {
                     display: grid;
                     grid-template-columns: repeat(2, 1fr);
-                    gap: 1.2rem;
-                    margin-bottom: 2.5rem;
+                    gap: 1.5rem;
+                    margin-bottom: 3rem;
                 }
                 .stat-card-mini {
                     background: rgba(255,255,255,0.05);
@@ -588,13 +590,13 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                     border-radius: 18px;
                     display: flex;
                     flex-direction: column;
-                    gap: 5px;
+                    gap: 8px;
                     transition: all 0.3s;
                 }
                 .stat-card-mini:hover { background: rgba(255,255,255,0.08); border-color: var(--primary); }
                 .stat-card-mini.full { grid-column: span 2; }
-                .stat-card-mini .label { font-size: 0.75rem; color: rgba(255,255,255,0.6); font-weight: 800; letter-spacing: 2px; }
-                .stat-card-mini .value { font-size: 1.1rem; font-weight: 700; color: #fff; }
+                .stat-card-mini .label { font-size: 0.75rem; color: rgba(255,255,255,0.5); font-weight: 800; letter-spacing: 2px; margin-bottom: 4px; display: block; }
+                .stat-card-mini .value { font-size: 1.15rem; font-weight: 700; color: #fff; line-height: 1.4; display: block; }
 
                 .event-desc-premium { font-size: 1.1rem; line-height: 1.6; color: rgba(255,255,255,0.8); margin-bottom: 2.5rem; max-width: 95%; }
                 
@@ -645,8 +647,8 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
 
                 /* PROGRESS BAR */
                 .reg-progress-bar { margin-bottom: 2rem; }
-                .rpb-text { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.7rem; font-weight: 800; letter-spacing: 2px; color: rgba(255,255,255,0.4); }
-                .rpb-count { color: var(--secondary); }
+                .rpb-text { display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.75rem; font-weight: 800; letter-spacing: 1.5px; color: rgba(255,255,255,0.4); }
+                .rpb-count { color: var(--secondary); font-weight: 900; }
                 .rpb-track { height: 4px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
                 .rpb-fill { height: 100%; background: linear-gradient(to right, var(--primary), var(--secondary)); border-radius: 4px; transition: width 0.5s ease; }
 
@@ -786,8 +788,8 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 }
                 .cat-card-option:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); }
                 .cat-card-option.selected { border-color: var(--primary); background: rgba(255,95,0,0.1); }
-                .cat-card-option .cat-name { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 2px; color: #fff; }
-                .cat-card-option .cat-price { color: var(--primary); font-weight: 800; font-size: 1rem; }
+                .cat-card-option .cat-name { display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; color: #fff; line-height: 1.2; }
+                .cat-card-option .cat-price { display: block; color: var(--primary); font-weight: 800; font-size: 1.1rem; line-height: 1; }
                 .cat-card-option .cat-check { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.1); border-radius: 50%; position: relative; flex-shrink: 0; }
                 .cat-card-option.selected .cat-check { background: var(--primary); border-color: var(--primary); }
                 .cat-card-option.selected .cat-check::after { content: ''; position: absolute; top: 45%; left: 50%; width: 5px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: translate(-50%, -50%) rotate(45deg); }
