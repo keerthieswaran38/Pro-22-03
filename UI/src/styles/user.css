@@ -64,7 +64,8 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -4072,96 +4073,118 @@ body {
     filter: blur(80px);
 }
 
-
 /* Unique Gagner Button Style v5 - High Visibility Shield Design */
-.btn-gagner-unique {
+/* Plasma Book Now Button */
+.btn-gagner-plasma {
     position: relative;
     padding: 1.2rem 4rem;
-    background: transparent;
+    background: rgba(3, 7, 18, 0.8);
     color: #fff;
     text-transform: uppercase;
     font-weight: 900;
-    letter-spacing: 2px;
-    font-size: 1rem;
-    border: none;
+    letter-spacing: 4px;
+    font-size: 1.1rem;
+    border-radius: 50px;
     cursor: pointer;
-    overflow: visible;
-    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
     z-index: 10;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    white-space: nowrap;
+    border: 1px solid rgba(255, 95, 0, 0.3);
+    box-shadow: 0 0 20px rgba(255, 95, 0, 0.1);
+    backdrop-filter: blur(10px);
 }
 
-/* Merging Shield Fragments */
-.btn-gagner-unique .fragment {
+.btn-gagner-plasma::before {
+    content: '';
     position: absolute;
-    width: 25%; height: 50%;
-    background: rgba(255, 95, 0, 0.1);
-    border: 1px solid rgba(255, 95, 0, 0.4);
-    box-shadow: 0 0 10px rgba(255, 95, 0, 0.1);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary), #FFB800, var(--primary));
+    background-size: 200% auto;
+    z-index: 0;
     transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-    z-index: -1;
-    pointer-events: none;
-}
-
-.btn-gagner-unique .f1 { top: -8px; left: -8px; }
-.btn-gagner-unique .f2 { top: -8px; right: -8px; }
-.btn-gagner-unique .f3 { bottom: -8px; left: -8px; }
-.btn-gagner-unique .f4 { bottom: -8px; right: -8px; }
-
-.btn-gagner-unique:hover .fragment {
-    width: 50.2%;
-    height: 50.2%;
-    background: var(--primary);
-    border-color: var(--primary);
-    box-shadow: 0 0 30px rgba(255, 95, 0, 0.4);
-}
-
-.btn-gagner-unique:hover .f1 { top: 0; left: 0; }
-.btn-gagner-unique:hover .f2 { top: 0; right: 0; }
-.btn-gagner-unique:hover .f3 { bottom: 0; left: 0; }
-.btn-gagner-unique:hover .f4 { bottom: 0; right: 0; }
-
-.btn-gagner-unique:hover {
-    color: #000;
-    letter-spacing: 6px;
-    transform: translateY(-5px);
-}
-
-/* Secondary Tech Accents */
-.btn-gagner-unique .tech-bar {
-    position: absolute;
-    width: 10px; height: 100%;
-    background: var(--secondary);
+    border-radius: 50px;
     opacity: 0;
-    transition: all 0.4s;
-    z-index: 2;
-    pointer-events: none;
 }
 
-.btn-gagner-unique .t-left { left: -30px; border-radius: 4px 0 0 4px; transform: translate(-20px, 0); }
-.btn-gagner-unique .t-right { right: -30px; border-radius: 0 4px 4px 0; transform: translate(20px, 0); }
+.btn-gagner-plasma:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(255, 95, 0, 0.6), 0 0 30px rgba(255, 184, 0, 0.4);
+    border-color: rgba(255, 95, 0, 0.8);
+}
 
-.btn-gagner-unique:hover .tech-bar {
+.btn-gagner-plasma:hover::before {
+    width: 105%;
+    height: 105%;
     opacity: 1;
-    height: 120%;
-    box-shadow: 0 0 20px var(--secondary);
+    animation: blazingPlasma 2s linear infinite;
 }
 
-.btn-gagner-unique:hover .t-left { transform: translate(-10px, 0); }
-.btn-gagner-unique:hover .t-right { transform: translate(10px, 0); }
+@keyframes blazingPlasma {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
+}
 
-.btn-gagner-unique span {
+.btn-gagner-plasma .plasma-text {
     position: relative;
     z-index: 5;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    text-shadow: 0 0 10px rgba(255, 95, 0, 0.5); /* subtle orange glow normally */
+}
+
+/* HIGH CONTRAST DARK TEXT ON BRIGHT BACKGROUND */
+.btn-gagner-plasma:hover .plasma-text {
+    color: var(--bg-dark); /* Deep black/blue space color for maximum contrast */
+    text-shadow: none; /* removing glowing so edge is perfectly sharp */
+    letter-spacing: 6px;
+}
+
+/* Liquid animated border */
+.btn-gagner-plasma .plasma-border {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.btn-gagner-plasma .plasma-border::before {
+    content: '';
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    background: linear-gradient(90deg, transparent, var(--secondary), transparent, var(--primary));
+    background-size: 200% 100%;
+    animation: plasmaFlow 3s linear infinite;
+    z-index: -1;
+    border-radius: 50px;
+    opacity: 0.6;
+    transition: opacity 0.3s;
+}
+
+.btn-gagner-plasma:hover .plasma-border::before {
+    background: linear-gradient(90deg, transparent, #fff, transparent, #FFB800);
+    background-size: 200% 100%;
+    opacity: 1;
+    animation: plasmaFlow 1s linear infinite;
+}
+
+@keyframes plasmaFlow {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
 }
 
 
-/* ============================
+/* ============================================
    NAVBAR UNIQUE BUTTON (Get In Touch)
    ============================ */
 .btn-navbar-unique {
@@ -4310,5 +4333,35 @@ body {
 @keyframes scannerMove {
     0% { left: 0; }
     100% { left: 100%; }
+}
+
+.event-card-glow.refined-glow {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(0, 200, 83, 0.2) 0%, transparent 60%);
+  border: 1px solid rgba(0, 200, 83, 0.1);
+  box-shadow: 0 0 50px rgba(0, 200, 83, 0.2);
+}
+.esi-scanner-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 83, 0.8), transparent);
+  box-shadow: 0 0 10px rgba(0, 200, 83, 0.6);
+  z-index: 10;
+  animation: scan-line-anim 3s linear infinite;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+.event-stack-item:hover .esi-scanner-line {
+  opacity: 1;
+}
+@keyframes scan-line-anim {
+  0% { top: 0; }
+  50% { top: 100%; }
+  100% { top: 0; }
 }
 

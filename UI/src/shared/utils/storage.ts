@@ -20,6 +20,7 @@ export interface GagnerEvent {
   venue: string;
   bgImg: string;
   desc: string;
+  description?: string;
   categories: EventCategory[];
   deliverables: string[];
   registrationOpen?: boolean;
@@ -47,7 +48,10 @@ export interface Participant {
   phone: string;
   city: string;
   gender: string;
+  bloodGroup: string;
+  dob: string;
   ageGroup: string;
+  tshirtSize: string;
   eventSlug: string;
   eventName: string;
   category: string;

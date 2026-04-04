@@ -13,6 +13,8 @@ import {
   FilePdfOutlined, FileExcelOutlined, FileTextOutlined, ReloadOutlined
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { GagnerEvent, getEvents, saveEvents, getCoupons, Coupon } from '../../shared/utils/storage';
 import { logAction } from '../../shared/utils/auditLog';
 import { eventSchema, zodToFieldErrors } from '../../shared/utils/schemas';
@@ -587,8 +589,39 @@ export default function EventsPage() {
             </Suspense>
           </Form.Item>
 
-          <Form.Item name="desc" label={<span style={labelStyle}>Description</span>}>
-            <TextArea rows={5} placeholder="General event description..." style={inputStyle} />
+          <Form.Item label={<span style={labelStyle}>Description (Rich Text Format)</span>}>
+            <Form.Item name="desc" noStyle>
+              <ReactQuill 
+                theme="snow"
+                placeholder="Compose the event story with bold, bullets, titles, and paragraph spacing..."
+                modules={{
+                  toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'align': [] }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    ['link'],
+                    ['clean']
+                  ]
+                }}
+                style={{
+                  background: pal.inputBg,
+                  color: pal.text,
+                  border: `0`,
+                  borderRadius: '8px',
+                  minHeight: '200px'
+                }}
+              />
+            </Form.Item>
+            <style>{`
+              .quill .ql-toolbar { border-radius: 8px 8px 0 0; background: ${pal.card}; border-color: ${pal.border}; } 
+              .quill .ql-container { border-radius: 0 0 8px 8px; border-color: ${pal.border}; border-top: 0; min-height: 200px; color: ${pal.text}; font-size: 1rem; } 
+              .ql-snow .ql-stroke { stroke: ${pal.textMuted}; } 
+              .ql-snow .ql-fill { fill: ${pal.textMuted}; } 
+              .ql-snow .ql-picker-label { color: ${pal.textMuted} !important; } 
+              .ql-snow .ql-picker-options { background: ${pal.card}; border-color: ${pal.border}; color: ${pal.text}; }
+            `}</style>
           </Form.Item>
 
           <Row gutter={16}>
