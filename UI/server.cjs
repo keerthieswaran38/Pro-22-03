@@ -10,7 +10,14 @@ require('dotenv').config();
 const ccav = require('./ccavUtils.cjs');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3012;
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n========================================`);
+    console.log(`🚀 SERVER RUNNING ON PORT: ${PORT}`);
+    console.log(`📡 URL: http://localhost:${PORT}`);
+    console.log(`========================================\n`);
+});
 
 // --- MANUAL CORS HEADERS (Nuke Fix) ---
 app.use((req, res, next) => {
@@ -108,10 +115,10 @@ async function connectDB(retries = 3) {
 
     for (let i = 1; i <= retries; i++) {
         try {
-            console.log(`📡 [Attempt ${i}/${retries}] Connecting to MongoDB Atlas...`);
-            await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000 });
+            console.log(`📡 [Attempt ${i}/${retries}] Connecting to MongoDB Atlas or Primary DB...`);
+            await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
             console.log('\x1b[32m%s\x1b[0m', '────────────────────────────────────────────────');
-            console.log('\x1b[32m%s\x1b[0m', '🚀 CONNECTED: MongoDB Atlas (Production)');
+            console.log('\x1b[32m%s\x1b[0m', '🚀 CONNECTED: MongoDB Dashboard');
             console.log('\x1b[32m%s\x1b[0m', '✅ Status: Authenticated & Authorized');
             console.log('\x1b[32m%s\x1b[0m', `📦 Database: ${mongoose.connection.db.databaseName}`);
             console.log('\x1b[32m%s\x1b[0m', '────────────────────────────────────────────────');
@@ -120,11 +127,18 @@ async function connectDB(retries = 3) {
         } catch (err) {
             console.error('\x1b[31m%s\x1b[0m', `❌ [Attempt ${i}/${retries}] ${err.message}`);
             if (i === retries) {
-                console.warn('\x1b[33m%s\x1b[0m', '⚠️ WARNING: Could not connect to MongoDB Atlas after all retries.');
-                console.warn('\x1b[33m%s\x1b[0m', '🚀 SWITCHING TO LOCAL FALLBACK MODE (Service limited to local data)');
-                isFallbackMode = true;
-                loadFallbackData();
-                return;
+                console.warn('\x1b[33m%s\x1b[0m', '⚠️ WARNING: Primary DB failed. Trying localhost MongoDB...');
+                try {
+                    await mongoose.connect('mongodb://127.0.0.1:27017/gagner_sports', { serverSelectionTimeoutMS: 5000 });
+                    console.log('\x1b[32m%s\x1b[0m', '🚀 CONNECTED: Localhost MongoDB on Hostinger');
+                    isFallbackMode = false;
+                    return;
+                } catch(localErr) {
+                    console.error('❌ Localhost MongoDB also failed. Falling back to JSON data source.');
+                    isFallbackMode = true;
+                    loadFallbackData();
+                    return;
+                }
             }
             console.log('⏳ Retrying in 3 seconds...');
             await new Promise(r => setTimeout(r, 3000));
@@ -701,7 +715,4 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Gagner Sports Backend Running at http://localhost:${PORT}`);
-    console.log('\x1b[33m%s\x1b[0m', '📋 SMART FALLBACK ENABLED: Will use local data if Atlas is unreachable.');
-});
+
