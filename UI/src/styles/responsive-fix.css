@@ -492,10 +492,11 @@ html, body {
         display: none;
     }
     .hero-title {
-        font-size: clamp(1.8rem, 9vw, 3rem) !important;
-        letter-spacing: -1px;
+        font-size: clamp(1.5rem, 8vw, 2.4rem) !important;
+        letter-spacing: -0.5px;
         text-align: center;
-        line-height: 1.1 !important;
+        line-height: 1.2 !important;
+        word-break: break-word;
     }
     .hero-title.indent {
         padding-left: 0;
@@ -508,12 +509,13 @@ html, body {
         overflow: visible !important;
     }
     .massive-text {
-        font-size: clamp(1.4rem, 6vw, 2.5rem) !important;
-        width: auto !important;
+        font-size: clamp(1.4rem, 8vw, 2.2rem) !important;
+        width: 100% !important;
         white-space: normal !important;
         text-align: center;
-        overflow: visible !important;
-        line-height: 1.15 !important;
+        overflow: hidden !important;
+        line-height: 1.2 !important;
+        word-break: break-word;
     }
     .massive-text.outline {
         padding-left: 0 !important;
@@ -561,9 +563,12 @@ html, body {
         margin-bottom: 1.5rem !important;
     }
     .heading-unique {
-        font-size: clamp(1.5rem, 8vw, 3rem) !important;
+        font-size: clamp(1.5rem, 8vw, 2.5rem) !important;
         flex-wrap: wrap;
-        line-height: 1.1;
+        line-height: 1.2;
+        gap: 0.8rem;
+        justify-content: center;
+        text-align: center;
     }
 
     /* Services */
