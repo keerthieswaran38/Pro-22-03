@@ -495,7 +495,8 @@ html, body {
         font-size: clamp(1.5rem, 8vw, 2.4rem) !important;
         letter-spacing: -0.5px;
         text-align: center;
-        line-height: 1.2 !important;
+        line-height: 1.4 !important;
+        margin-bottom: 0.5rem !important;
         word-break: break-word;
     }
     .hero-title.indent {

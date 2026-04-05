@@ -220,26 +220,72 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
     const handleFinalSubmit = async () => {
         setLoading(true);
         try {
-            for (const form of participants) {
-                const p: Participant = {
-                    id: `P-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            const orderId = `ORD-${Date.now()}`;
+            let totalAmount = 0;
+            
+            const participantsToSave = participants.map((form) => {
+                const catInfo = (event?.categories || []).find((c: any) => c.name === form.category);
+                if (catInfo && catInfo.price) {
+                     totalAmount += Number(String(catInfo.price).replace(/[^0-9.]/g, ''));
+                }
+                return {
+                    id: `P-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
                     ...form,
+                    orderId,
                     city: 'N/A',
                     ageGroup: form.age,
                     tshirtSize: form.tshirtSize,
                     eventSlug: event.slug || slug || '',
                     eventName: event.title,
                     registeredAt: new Date().toISOString(),
-                    paymentStatus: 'Pending',
+                    paymentStatus: 'Pending' as const,
                     isPaid: false
                 };
+            });
+
+            // Save locally first with Pending status
+            for (const p of participantsToSave) {
                 await saveParticipant(p);
             }
-            setSuccess(true);
-            setTimeout(() => navigate('/'), 4000);
+
+            // If total amount is 0, skip payment
+            if (totalAmount === 0 || isNaN(totalAmount)) {
+                setSuccess(true);
+                setTimeout(() => navigate('/'), 4000);
+                return;
+            }
+
+            // Call CCAvenue initiation endpoint
+            const qs = `amount=${totalAmount}&orderId=${orderId}&data=bulk`;
+            const resp = await fetch(`/api/payment/initiate?${qs}`);
+            const data = await resp.json();
+
+            if (data.success && data.encRequest) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = data.gateway_url;
+
+                const encReq = document.createElement('input');
+                encReq.type = 'hidden';
+                encReq.name = 'encRequest';
+                encReq.value = data.encRequest;
+                form.appendChild(encReq);
+
+                const accessCode = document.createElement('input');
+                accessCode.type = 'hidden';
+                accessCode.name = 'access_code';
+                accessCode.value = data.access_code;
+                form.appendChild(accessCode);
+
+                document.body.appendChild(form);
+                form.submit();
+            } else {
+                alert('Payment gateway failed to initialize. Please try again later.');
+                setLoading(false);
+            }
         } catch (err) {
+            console.error(err);
             alert('Registration failed. Please try again.');
-        } finally {
             setLoading(false);
         }
     };
