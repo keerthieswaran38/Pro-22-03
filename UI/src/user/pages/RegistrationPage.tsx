@@ -1,6 +1,6 @@
 import React, { useState, useLayoutEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { GagnerEvent, Participant, saveParticipant } from '../../shared/utils/storage';
+import { GagnerEvent, Participant, saveParticipant, API_BASE } from '../../shared/utils/storage';
 import gsap from 'gsap';
 
 interface ParticipantForm {
@@ -257,7 +257,11 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
 
             // Call CCAvenue initiation endpoint
             const qs = `amount=${totalAmount}&orderId=${orderId}&data=bulk`;
-            const resp = await fetch(`/api/payment/initiate?${qs}`);
+            const resp = await fetch(`${API_BASE}/api/payment/initiate?${qs}`);
+            if (!resp.ok) {
+                const text = await resp.text();
+                throw new Error(`Payment API returned ${resp.status}: ${text}`);
+            }
             const data = await resp.json();
 
             if (data.success && data.encRequest) {
