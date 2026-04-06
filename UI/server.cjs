@@ -218,7 +218,7 @@ const leaderboardSchema = new mongoose.Schema({
 const Event = mongoose.model('Event', eventSchema);
 const Participant = mongoose.model('Participant', participantSchema);
 const Coupon = mongoose.model('Coupon', couponSchema);
-const Content = mongoose.model('Content', contentSchema);
+const Content = mongoose.model('Content', contentSchema, 'contents');
 const Audit = mongoose.model('Audit', auditSchema);
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
 
@@ -412,34 +412,50 @@ app.delete('/api/leaderboard/:slug', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/payment/initiate', async (req, res) => {
+// Unified payment initiation handler (supports both GET and POST)
+const handlePaymentInitiate = async (req, res) => {
     try {
-        const { amount, orderId, data } = req.query;
+        // Support both GET (query params) and POST (JSON body)
+        const amount = req.body?.amount || req.query?.amount;
+        const orderId = req.body?.orderId || req.query?.orderId;
+        const participants = req.body?.participants;
 
-        if (!data || !amount || !orderId) return res.status(400).send("Missing query parameters");
+        if (!amount || !orderId) return res.status(400).json({ error: 'Missing amount or orderId' });
 
-        // ── 1. HARDCODED LIVE CREDENTIALS (Step 958 Verified) ──
+        // DATA-FIRST: Save participants as 'Pending' before payment
+        if (participants && Array.isArray(participants)) {
+            for (const p of participants) {
+                await Participant.updateOne(
+                    { orderId, email: p.email, category: p.category },
+                    { $set: { ...p, orderId, paymentStatus: 'Pending', isPaid: false, registeredAt: p.registeredAt || new Date().toISOString() } },
+                    { upsert: true }
+                );
+            }
+            console.log(`[PAYMENT] Data-first: ${participants.length} participants saved as Pending for ${orderId}`);
+        }
+
+        // ── LIVE CREDENTIALS ──
+        const host = req.get('host') || 'gagnersports.com';
+        const isWWW = host.includes('www.');
         const merchant_id = '4399469';
-        const access_code = 'AVRB83MH23BQ11BRQB';
-        const working_key = '77CBADC7443F52193CDD382949264C51';
+        const access_code = isWWW ? 'AVDG84MJ95AQ29GDQA' : 'AVRB83MH23BQ11BRQB';
+        const working_key = isWWW ? '5A8096D2CCCAAA0EA895860C2A314CA4' : '77CBADC7443F52193CDD382949264C51';
 
         const finalAmount = Number(amount) > 0 ? Number(amount).toFixed(2) : '1.00';
 
-        // ── 2. MANUAL STRING CONSTRUCTION (No stripping) ──
         const parts = [
             `merchant_id=${String(merchant_id)}`,
             `order_id=${String(orderId)}`,
             `currency=INR`,
             `amount=${String(finalAmount)}`,
-            `redirect_url=https://gagnersports.com/api/ccavResponseHandler`,
-            `cancel_url=https://gagnersports.com/failure`,
+            `redirect_url=https://${host}/api/payment/response`,
+            `cancel_url=https://${host}/payment-failed`,
             `language=EN`
         ];
         const requestParams = parts.join('&');
-
         const encRequest = ccav.encrypt(requestParams, working_key);
 
-        console.log(`[AUTH] PLAIN: ${requestParams}`);
+        console.log(`[AUTH] HOST: ${host} | PLAIN: ${requestParams}`);
         console.log(`[AUTH] ENC LENGTH: ${encRequest.length}`);
 
         res.json({
@@ -454,7 +470,9 @@ app.get('/api/payment/initiate', async (req, res) => {
         console.error('PAYMENT INITIATE ERROR:', e.message);
         res.status(500).json({ error: e.message });
     }
-});
+};
+app.get('/api/payment/initiate', handlePaymentInitiate);
+app.post('/api/payment/initiate', handlePaymentInitiate);
 
 // --- DIAGNOSTIC ENDPOINT ---
 app.get('/api/debug-config', (req, res) => {
@@ -509,17 +527,18 @@ app.get('/api/test-ccav', async (req, res) => {
  * 2. Response Webhook: CC Avenue posts data here after transaction
  * Note: Body-parser must handle urlencoded for this to work as form data
  */
-app.post('/api/ccavResponseHandler', express.urlencoded({ extended: true }), async (req, res) => {
+// Payment Response Handler — CC Avenue posts encrypted result here
+const handlePaymentResponse = async (req, res) => {
     try {
         const { encResp } = req.body;
-        // MASTER KEY SYNC (Hardcoded per user workaround)
-        const working_key = '77CBADC7443F52193CDD382949264C51';
-        
         if (!encResp) return res.status(400).send('No response received');
+
+        const host = req.get('host') || 'gagnersports.com';
+        const isWWW = host.includes('www.');
+        const working_key = isWWW ? '5A8096D2CCCAAA0EA895860C2A314CA4' : '77CBADC7443F52193CDD382949264C51';
 
         const decryptedResp = ccav.decrypt(encResp, working_key);
         
-        // Parsing "parameter=value&..." string
         const result = {};
         decryptedResp.split('&').forEach(item => {
             const [key, val] = item.split('=');
@@ -530,9 +549,9 @@ app.post('/api/ccavResponseHandler', express.urlencoded({ extended: true }), asy
         const order_status = result['order_status'];
         const tracking_id = result['tracking_id'];
 
-        console.log(`Payment Response for ${order_id}: ${order_status}`);
+        console.log(`[PAYMENT RESPONSE] Order: ${order_id} | Status: ${order_status} | Tracking: ${tracking_id}`);
 
-        let redirectUrl = 'https://gagnersports.com';
+        let redirectUrl = `https://${host}`;
 
         if (order_status === 'Success') {
             await Participant.updateMany(
@@ -540,28 +559,23 @@ app.post('/api/ccavResponseHandler', express.urlencoded({ extended: true }), asy
                 { paymentStatus: 'Paid', isPaid: true, transactionId: tracking_id, tracking_id: tracking_id }
             );
             redirectUrl += '/registration-success?orderId=' + order_id;
-        } else if (order_status === 'Aborted' || order_status === 'Cancel') {
-             await Participant.updateMany(
-                { orderId: order_id },
-                { paymentStatus: 'Failed', isPaid: false, transactionId: tracking_id, tracking_id: tracking_id }
-            );
-            redirectUrl += '/payment-failed?orderId=' + order_id + '&reason=' + order_status;
         } else {
             await Participant.updateMany(
                 { orderId: order_id },
                 { paymentStatus: 'Failed', isPaid: false, transactionId: tracking_id, tracking_id: tracking_id }
             );
-            redirectUrl += '/payment-failed?orderId=' + order_id;
+            redirectUrl += '/payment-failed?orderId=' + order_id + '&reason=' + (order_status || 'Unknown');
         }
 
-        // Auto-redirect back to frontend via HTTP 302
-        // This makes the transition completely invisible from the Render backend to the Vercel frontend
         res.redirect(redirectUrl);
     } catch (e) {
         console.error('PAYMENT STATUS ERROR:', e.message);
-        res.status(500).send("An error occurred during payment processing.");
+        res.status(500).send('An error occurred during payment processing.');
     }
-});
+};
+// Register on BOTH routes so CCAvenue callback always works
+app.post('/api/payment/response', express.urlencoded({ extended: true }), handlePaymentResponse);
+app.post('/api/ccavResponseHandler', express.urlencoded({ extended: true }), handlePaymentResponse);
 
 // --- CCAV ORIGIN DEBUG ---
 app.get('/api/ccav-who-am-i', (req, res) => {

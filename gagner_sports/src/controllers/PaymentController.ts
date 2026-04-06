@@ -6,8 +6,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const WORKING_KEY = process.env.CCAV_WORKING_KEY || '5A8096D2CCCAAA0EA895860C2A314CA4';
-const ACCESS_CODE = process.env.CCAV_ACCESS_CODE || 'AVDG84MJ95AO29GDCA';
+const WORKING_KEY = process.env.CCAV_WORKING_KEY || '77CBADC7443F52193CDD382949264C51';
+const ACCESS_CODE = process.env.CCAV_ACCESS_CODE || 'AVRB83MH23BQ11BRQB';
 const MERCHANT_ID = process.env.CCAV_MERCHANT_ID || '4399469';
 
 export const initiatePayment = async (req: Request, res: Response) => {

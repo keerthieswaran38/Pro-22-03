@@ -255,9 +255,16 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
                 return;
             }
 
-            // Call CCAvenue initiation endpoint
-            const qs = `amount=${totalAmount}&orderId=${orderId}&data=bulk`;
-            const resp = await fetch(`${API_BASE}/api/payment/initiate?${qs}`);
+            // Call CCAvenue initiation endpoint (POST with JSON body — matches PaymentController.ts)
+            const resp = await fetch(`${API_BASE}/api/payment/initiate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: totalAmount,
+                    orderId,
+                    participants: participantsToSave
+                })
+            });
             if (!resp.ok) {
                 const text = await resp.text();
                 throw new Error(`Payment API returned ${resp.status}: ${text}`);

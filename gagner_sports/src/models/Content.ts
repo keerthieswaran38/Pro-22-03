@@ -30,4 +30,4 @@ const contentSchema = new Schema<IContent>({
   active: { type: Boolean, default: true }
 });
 
-export default mongoose.model<IContent>('Content', contentSchema);
+export default mongoose.model<IContent>('Content', contentSchema, 'contents');
