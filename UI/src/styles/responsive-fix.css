@@ -492,10 +492,12 @@ html, body {
         display: none;
     }
     .hero-title {
-        font-size: clamp(1.8rem, 9vw, 3rem) !important;
-        letter-spacing: -1px;
+        font-size: clamp(1.5rem, 8vw, 2.4rem) !important;
+        letter-spacing: -0.5px;
         text-align: center;
-        line-height: 1.1 !important;
+        line-height: 1.4 !important;
+        margin-bottom: 0.5rem !important;
+        word-break: break-word;
     }
     .hero-title.indent {
         padding-left: 0;
@@ -508,12 +510,13 @@ html, body {
         overflow: visible !important;
     }
     .massive-text {
-        font-size: clamp(1.4rem, 6vw, 2.5rem) !important;
-        width: auto !important;
+        font-size: clamp(1.4rem, 8vw, 2.2rem) !important;
+        width: 100% !important;
         white-space: normal !important;
         text-align: center;
-        overflow: visible !important;
-        line-height: 1.15 !important;
+        overflow: hidden !important;
+        line-height: 1.2 !important;
+        word-break: break-word;
     }
     .massive-text.outline {
         padding-left: 0 !important;
@@ -561,9 +564,12 @@ html, body {
         margin-bottom: 1.5rem !important;
     }
     .heading-unique {
-        font-size: clamp(1.5rem, 8vw, 3rem) !important;
+        font-size: clamp(1.5rem, 8vw, 2.5rem) !important;
         flex-wrap: wrap;
-        line-height: 1.1;
+        line-height: 1.2;
+        gap: 0.8rem;
+        justify-content: center;
+        text-align: center;
     }
 
     /* Services */
@@ -1059,4 +1065,63 @@ html, body {
     .esi-content h3 {
         font-size: 1.2rem !important;
     }
+}
+
+/* ============================================================
+   REGISTRATION PAGE SPECIFIC FIXES
+   ============================================================ */
+
+/* Ensure proper spacing from fixed navbar */
+.registration-mad-container {
+    padding-top: 200px !important;
+}
+
+@media (max-width: 1440px) {
+    .registration-mad-container { padding-top: 180px !important; }
+}
+
+@media (max-width: 1024px) {
+    .registration-mad-container { padding-top: 160px !important; }
+    .registration-content-wrapper { grid-template-columns: 1fr !important; gap: 3rem !important; }
+    .reg-form-glass-wrap { position: relative !important; top: 0 !important; }
+}
+
+@media (max-width: 768px) {
+    .registration-mad-container { padding-top: 140px !important; }
+    .event-title-extreme { font-size: 2.5rem !important; text-align: center; margin-bottom: 2rem !important; }
+    .form-glass-card { padding: 2rem 1.5rem !important; }
+}
+
+@media (max-width: 480px) {
+    .registration-mad-container { padding-top: 120px !important; }
+    .event-title-extreme { font-size: 2rem !important; }
+    .form-header-premium h2 { font-size: 1.5rem !important; }
+    .tc-value { font-size: 2.5rem !important; }
+    .filled-participants-list { margin-top: 1.5rem !important; }
+}
+
+/* Fix category card pricing smashing */
+.cat-card-option .cat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.cat-card-option .cat-name {
+    display: block !important;
+    line-height: 1.2 !important;
+}
+.cat-card-option .cat-price {
+    display: block !important;
+    margin-top: 2px !important;
+}
+
+/* Fix stat card label/value overlap */
+.stat-card-mini {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+}
+.stat-card-mini .label, .stat-card-mini .value {
+    display: block !important;
+    line-height: 1.4 !important;
 }

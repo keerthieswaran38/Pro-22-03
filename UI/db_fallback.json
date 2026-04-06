@@ -3,11 +3,11 @@
     "chennai-juniorthon-2026": {
       "title": "Madras Juniorthon 2026",
       "tag": "KIDS",
-      "date": "Invalid Date",
+      "date": "2026-05-24",
       "time": "12:00 AM – 12:03 PM",
       "venue": "Island Grounds, Chennai",
       "desc": "India’s largest junior run.",
-      "bgImg": "/src/assets/images/chennai_juniorthon.png",
+      "bgImg": "/images/chennai_juniorthon.png",
       "categories": [
         {
           "name": "Kid (1-4km)",
@@ -35,7 +35,7 @@
       "date": "2026-03-08",
       "time": "05:30 AM",
       "venue": "Marina Beach, Chennai",
-      "bgImg": "/src/assets/images/womens_day_run.png",
+      "bgImg": "/images/womens_day_run.png",
       "desc": "Fitness celebration.",
       "registrationOpen": true,
       "status": "Open",
@@ -53,7 +53,7 @@
       "date": "2026-04-07",
       "time": "05:45 AM",
       "venue": "Besant Nagar, Chennai",
-      "bgImg": "/src/assets/images/health_day_run.png",
+      "bgImg": "/images/health_day_run.png",
       "desc": "Community run.",
       "registrationOpen": true,
       "status": "Open"
@@ -65,7 +65,7 @@
       "date": "2026-06-21",
       "time": "06:15 AM",
       "venue": "VGP Universal Kingdom",
-      "bgImg": "/src/assets/images/fathers_day_marathon.png",
+      "bgImg": "/images/fathers_day_marathon.png",
       "desc": "Bonding marathon.",
       "registrationOpen": true,
       "status": "Open"

@@ -19,6 +19,7 @@ const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const BlogDetailsPage = lazy(() => import('./pages/BlogDetailsPage'));
 const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
 const RefundCancellationPage = lazy(() => import('./pages/RefundCancellationPage'));
+const PaymentStatusPage = lazy(() => import('./pages/PaymentStatusPage'));
 
 /* ─── USER LAYOUT ─── */
 function UserLayout({ children, loading, events, leaderboard, contentData }: { children: React.ReactNode, loading: boolean, events: any[], leaderboard: any, contentData: any[] }) {
@@ -249,6 +250,8 @@ export default function UserApp() {
             <Route path="/blog/:id" element={<BlogDetailsPage />} />
             <Route path="/terms-conditions" element={<TermsConditionsPage />} />
             <Route path="/refund-cancellation" element={<RefundCancellationPage />} />
+            <Route path="/registration-success" element={<PaymentStatusPage />} />
+            <Route path="/payment-failed" element={<PaymentStatusPage />} />
             <Route path="*" element={<LandingPage events={activeEventsList} leaderboard={leaderboard} content={contentData} />} />
           </Routes>
         </Suspense>

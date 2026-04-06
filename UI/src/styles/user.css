@@ -3986,7 +3986,7 @@ body {
     
     /* Hero layout adjustments */
     .hero-title { font-size: clamp(1.8rem, 8vw, 3rem); line-height: 1.2; word-wrap: break-word; }
-    .hero-brutal { padding: 80px 1.5rem 2rem; flex-direction: column-reverse; height: auto; gap: 2rem; text-align: center; }
+    .hero-brutal { padding: 80px 1.5rem 2rem; flex-direction: column; height: auto; gap: 2rem; text-align: center; }
     .hero-content { align-items: center; }
     .hero-visual { width: 100%; height: 40vh; margin-top: 2rem; }
     .hero-title.indent { padding-left: 0; }
