@@ -58,6 +58,7 @@ export interface Participant {
   paymentStatus: 'Paid' | 'Pending' | 'Failed';
   isPaid: boolean;
   orderId?: string;
+  invoiceOrderId?: string;
   transactionId?: string;
   tracking_id?: string;
   registeredAt: string;

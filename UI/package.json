@@ -43,6 +43,7 @@
         "node-ccavenue": "^1.0.5",
         "nodemailer": "^8.0.4",
         "open-location-code": "^1.0.3",
+        "pdfkit": "^0.18.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-leaflet": "^4.2.1",

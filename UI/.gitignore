@@ -1,2 +1,30 @@
 node_modules
 .env
+
+# Build output
+dist/
+
+# Deployment artifacts
+*_bundle/
+*.zip
+final_production_v6/
+
+# Test/debug scripts (contain secrets)
+test*.cjs
+diagnose_*.cjs
+investigate_*.cjs
+simulate_*.cjs
+*_audit*.cjs
+
+# Legacy kits
+ccav_kit_v1/
+php_remedy/
+
+# Logs & temp files
+*.log
+*.txt
+!README.txt
+
+# IDE
+.cursor
+.vscode

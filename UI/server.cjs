@@ -8,6 +8,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 const ccav = require('./ccavUtils.cjs');
+const { generateInvoice } = require('./invoiceGenerator.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 3012;
@@ -22,11 +23,17 @@ app.listen(PORT, '0.0.0.0', () => {
 // --- MANUAL CORS HEADERS (Nuke Fix) ---
 app.use((req, res, next) => {
     const origin = req.header('Origin');
-    const allowedOrigins = ['https://gagnersports.com', 'https://www.gagnersports.com', 'http://localhost:3008', 'http://localhost:3009'];
+    const frontendUrl = process.env.FRONTEND_URL || 'https://gagnersports.com';
+    const allowedOrigins = [
+        frontendUrl,
+        frontendUrl.replace('https://', 'https://www.'),
+        'http://localhost:3008',
+        'http://localhost:3009'
+    ];
     if (origin && allowedOrigins.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
     } else {
-        res.setHeader('Access-Control-Allow-Origin', 'https://gagnersports.com');
+        res.setHeader('Access-Control-Allow-Origin', frontendUrl);
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
@@ -179,6 +186,7 @@ const participantSchema = new mongoose.Schema({
     paymentStatus: { type: String, enum: ['Paid', 'Pending', 'Failed'], default: 'Pending' },
     isPaid: { type: Boolean, default: false },
     orderId: String,
+    invoiceOrderId: String,
     transactionId: String,
     tracking_id: String,
     registeredAt: { type: String, default: () => new Date().toISOString() }
@@ -215,12 +223,248 @@ const leaderboardSchema = new mongoose.Schema({
     expireAt: { type: Date, expires: 0 } // TTL index: autodeletes when current time matches expireAt
 });
 
+// ── Order Counter Schema for dynamic 5-digit Order IDs ──
+const orderCounterSchema = new mongoose.Schema({
+    prefix: { type: String, unique: true },  // e.g. 'JT', 'MR', 'GS'
+    counter: { type: Number, default: 10000 } // starts at 10000, first ID = 10001
+});
+
 const Event = mongoose.model('Event', eventSchema);
 const Participant = mongoose.model('Participant', participantSchema);
 const Coupon = mongoose.model('Coupon', couponSchema);
 const Content = mongoose.model('Content', contentSchema, 'contents');
 const Audit = mongoose.model('Audit', auditSchema);
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
+const OrderCounter = mongoose.model('OrderCounter', orderCounterSchema);
+
+// ═══════════════════════════════════════════════════════
+// DYNAMIC ORDER ID GENERATION
+// ═══════════════════════════════════════════════════════
+
+/** Map event names/slugs to a 2-letter prefix */
+function getEventPrefix(eventNameOrSlug) {
+    const s = String(eventNameOrSlug || '').toLowerCase();
+    if (s.includes('juniorthon'))  return 'JT';
+    if (s.includes('marathon'))    return 'MR';
+    if (s.includes('sprint'))      return 'SP';
+    if (s.includes('run'))         return 'RN';
+    if (s.includes('walk'))        return 'WK';
+    if (s.includes('cyclothon'))   return 'CT';
+    if (s.includes('triathlon'))   return 'TR';
+    return 'GS'; // default: Gagner Sports
+}
+
+/**
+ * Generate a unique 5-digit Order ID for a participant.
+ * Format: {PREFIX}{COUNTER}  e.g. JT10001, MR10003
+ * Uses MongoDB atomic findOneAndUpdate to prevent duplicates.
+ */
+async function generateUniqueOrderId(eventNameOrSlug) {
+    const prefix = getEventPrefix(eventNameOrSlug);
+    // First, ensure the counter document exists with base value 10000
+    await OrderCounter.updateOne(
+        { prefix },
+        { $setOnInsert: { prefix, counter: 10000 } },
+        { upsert: true }
+    );
+    // Then atomically increment and return the new value
+    const result = await OrderCounter.findOneAndUpdate(
+        { prefix },
+        { $inc: { counter: 1 } },
+        { returnDocument: 'after' }
+    );
+    return `${prefix}${result.counter}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// INVOICE + EMAIL PIPELINE
+// ═══════════════════════════════════════════════════════
+
+/** Create the Zoho SMTP transporter (reusable) */
+function createSmtpTransporter() {
+    return nodemailer.createTransport({
+        host: 'smtp.zoho.in',
+        port: 587,
+        secure: false,
+        auth: {
+            user: process.env.SMTP_USER || 'info@gagnersports.com',
+            pass: process.env.SMTP_PASSWORD
+        },
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 15000,
+        greetingTimeout: 10000,
+        socketTimeout: 20000
+    });
+}
+
+/**
+ * Generate a PDF invoice and send it via email for ONE participant.
+ * @param {Object} participant - The participant document from MongoDB
+ * @param {Object} event - The event document (for date/venue info)
+ * @param {string} transactionId - CCAvenue tracking ID
+ * @param {number} retries - Number of retry attempts
+ */
+async function sendInvoiceEmail(participant, event, transactionId, retries = 2) {
+    const invoiceOrderId = participant.invoiceOrderId;
+    console.log(`[INVOICE] Generating PDF for ${participant.name} (${invoiceOrderId})...`);
+
+    let pdfBuffer;
+    try {
+        // Determine per-participant amount from category
+        let amount = '';
+        if (event && event.categories) {
+            const cat = event.categories.find(c => c.name === participant.category);
+            if (cat && cat.price) amount = String(cat.price).replace(/[^0-9.]/g, '');
+        }
+
+        pdfBuffer = await generateInvoice({
+            invoiceOrderId,
+            participantName: participant.name,
+            email: participant.email,
+            phone: participant.phone,
+            gender: participant.gender,
+            tshirtSize: participant.tshirtSize,
+            eventName: participant.eventName || (event ? event.title : 'N/A'),
+            category: participant.category,
+            orderId: participant.orderId,
+            transactionId: transactionId || participant.tracking_id || '',
+            date: event ? event.date : '',
+            venue: event ? event.venue : '',
+            amount,
+            bloodGroup: participant.bloodGroup || '',
+            age: participant.ageGroup || participant.age || '',
+            dob: participant.dob || ''
+        });
+        console.log(`[INVOICE] PDF generated: ${pdfBuffer.length} bytes for ${invoiceOrderId}`);
+    } catch (pdfErr) {
+        console.error(`[INVOICE] ❌ PDF generation failed for ${invoiceOrderId}:`, pdfErr.message);
+        if (retries > 0) {
+            console.log(`[INVOICE] Retrying PDF generation... (${retries} attempts left)`);
+            await new Promise(r => setTimeout(r, 1000));
+            return sendInvoiceEmail(participant, event, transactionId, retries - 1);
+        }
+        throw pdfErr;
+    }
+
+    // Send email with PDF attachment
+    const transporter = createSmtpTransporter();
+    try {
+        await transporter.verify();
+        console.log(`[EMAIL] SMTP verified, sending to ${participant.email}...`);
+    } catch (verifyErr) {
+        console.error(`[EMAIL] ❌ SMTP verification failed:`, verifyErr.message);
+        if (retries > 0) {
+            console.log(`[EMAIL] Retrying SMTP... (${retries} attempts left)`);
+            await new Promise(r => setTimeout(r, 2000));
+            return sendInvoiceEmail(participant, event, transactionId, retries - 1);
+        }
+        throw verifyErr;
+    }
+
+    const mailOptions = {
+        from: '"Gagner Sports" <info@gagnersports.com>',
+        to: participant.email,
+        subject: `🎉 Registration Confirmed — ${participant.eventName || 'Event'} | Order #${invoiceOrderId}`,
+        html: `
+            <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9; border-radius: 12px; overflow: hidden;">
+                <div style="background: linear-gradient(135deg, #FF5F00, #FF8C00); padding: 30px; text-align: center;">
+                    <h1 style="color: #fff; margin: 0; font-size: 24px;">🎉 Registration Confirmed!</h1>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="font-size: 16px; color: #333;">Hi <strong>${participant.name}</strong>,</p>
+                    <p style="color: #555;">Your registration for <strong>${participant.eventName}</strong> has been confirmed!</p>
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                        <tr style="background: #fff;">
+                            <td style="padding: 12px; border: 1px solid #eee; font-weight: bold; color: #666; width: 40%;">Order ID</td>
+                            <td style="padding: 12px; border: 1px solid #eee; color: #FF5F00; font-weight: bold; font-size: 18px;">${invoiceOrderId}</td>
+                        </tr>
+                        <tr style="background: #fafafa;">
+                            <td style="padding: 12px; border: 1px solid #eee; font-weight: bold; color: #666;">Category</td>
+                            <td style="padding: 12px; border: 1px solid #eee;">${participant.category}</td>
+                        </tr>
+                        <tr style="background: #fff;">
+                            <td style="padding: 12px; border: 1px solid #eee; font-weight: bold; color: #666;">T-Shirt Size</td>
+                            <td style="padding: 12px; border: 1px solid #eee;">${participant.tshirtSize || 'N/A'}</td>
+                        </tr>
+                    </table>
+                    <p style="color: #555;">Please find your invoice attached as a PDF.</p>
+                    <div style="text-align: center; margin-top: 25px;">
+                        <a href="https://gagnersports.com" style="display: inline-block; background: #FF5F00; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; font-size: 14px;">Visit Gagner Sports</a>
+                    </div>
+                </div>
+                <div style="background: #333; padding: 20px; text-align: center;">
+                    <p style="color: #aaa; font-size: 12px; margin: 0;">© 2026 Gagner Sports | info@gagnersports.com</p>
+                </div>
+            </div>
+        `,
+        attachments: [{
+            filename: `Invoice_${invoiceOrderId}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+        }]
+    };
+
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`[EMAIL] ✅ Invoice sent to ${participant.email} (messageId: ${info.messageId})`);
+    } catch (sendErr) {
+        console.error(`[EMAIL] ❌ Failed to send invoice to ${participant.email}:`, sendErr.message);
+        if (retries > 0) {
+            console.log(`[EMAIL] Retrying send... (${retries} attempts left)`);
+            await new Promise(r => setTimeout(r, 2000));
+            return sendInvoiceEmail(participant, event, transactionId, retries - 1);
+        }
+        // Don't throw — we don't want email failure to block the user redirect
+        console.error(`[EMAIL] ❌ All retries exhausted for ${participant.email}. Invoice NOT sent.`);
+    }
+}
+
+/**
+ * Process all participants for a given orderId after successful payment.
+ * Each participant gets a unique invoiceOrderId, a PDF invoice, and a separate email.
+ */
+async function processPostPaymentInvoices(orderId, trackingId) {
+    try {
+        const participants = await Participant.find({ orderId });
+        if (!participants || participants.length === 0) {
+            console.warn(`[INVOICE] No participants found for orderId: ${orderId}`);
+            return;
+        }
+
+        // Get the event for metadata
+        const firstP = participants[0];
+        const event = await Event.findOne({ slug: firstP.eventSlug });
+
+        console.log(`[INVOICE] Processing ${participants.length} participant(s) for order ${orderId}...`);
+
+        for (const participant of participants) {
+            try {
+                // Generate unique 5-digit invoiceOrderId
+                const invoiceOrderId = await generateUniqueOrderId(
+                    participant.eventName || participant.eventSlug
+                );
+
+                // Save it to the participant document
+                await Participant.updateOne(
+                    { _id: participant._id },
+                    { $set: { invoiceOrderId } }
+                );
+                participant.invoiceOrderId = invoiceOrderId;
+
+                // Generate PDF + Send Email (fire-and-forget for each participant)
+                await sendInvoiceEmail(participant, event, trackingId);
+
+            } catch (pErr) {
+                console.error(`[INVOICE] ❌ Failed for participant ${participant.name}:`, pErr.message);
+                // Continue to next participant — don't let one failure block others
+            }
+        }
+
+        console.log(`[INVOICE] ✅ All invoices processed for order ${orderId}`);
+    } catch (err) {
+        console.error(`[INVOICE] ❌ Critical error processing invoices for ${orderId}:`, err.message);
+    }
+}
 
 // ========================
 // API ROUTES (All MongoDB)
@@ -293,8 +537,8 @@ app.post('/api/bulk-email', async (req, res) => {
             port: 587,
             secure: false,
             auth: {
-                user: 'info@gagnersports.com',
-                pass: 'Rv1S3FRNssun'
+                user: process.env.SMTP_USER || 'info@gagnersports.com',
+                pass: process.env.SMTP_PASSWORD
             },
             tls: {
                 rejectUnauthorized: false
@@ -434,12 +678,12 @@ const handlePaymentInitiate = async (req, res) => {
             console.log(`[PAYMENT] Data-first: ${participants.length} participants saved as Pending for ${orderId}`);
         }
 
-        // ── LIVE CREDENTIALS ──
+        // ── LIVE CREDENTIALS (from environment) ──
         const host = req.get('host') || 'gagnersports.com';
         const isWWW = host.includes('www.');
-        const merchant_id = '4399469';
-        const access_code = isWWW ? 'AVDG84MJ95AQ29GDQA' : 'AVRB83MH23BQ11BRQB';
-        const working_key = isWWW ? '5A8096D2CCCAAA0EA895860C2A314CA4' : '77CBADC7443F52193CDD382949264C51';
+        const merchant_id = process.env.CCAV_MERCHANT_ID;
+        const access_code = isWWW ? process.env.CCAV_ACCESS_CODE_WWW : process.env.CCAV_ACCESS_CODE;
+        const working_key = isWWW ? process.env.CCAV_WORKING_KEY_WWW : process.env.CCAV_WORKING_KEY;
 
         const finalAmount = Number(amount) > 0 ? Number(amount).toFixed(2) : '1.00';
 
@@ -455,8 +699,8 @@ const handlePaymentInitiate = async (req, res) => {
         const requestParams = parts.join('&');
         const encRequest = ccav.encrypt(requestParams, working_key);
 
-        console.log(`[AUTH] HOST: ${host} | PLAIN: ${requestParams}`);
-        console.log(`[AUTH] ENC LENGTH: ${encRequest.length}`);
+        // Sanitized: only log non-sensitive metadata
+        console.log(`[AUTH] HOST: ${host} | ENC LENGTH: ${encRequest.length}`);
 
         res.json({
             success: true,
@@ -474,14 +718,14 @@ const handlePaymentInitiate = async (req, res) => {
 app.get('/api/payment/initiate', handlePaymentInitiate);
 app.post('/api/payment/initiate', handlePaymentInitiate);
 
-// --- DIAGNOSTIC ENDPOINT ---
+// --- DIAGNOSTIC ENDPOINT (redacted) ---
 app.get('/api/debug-config', (req, res) => {
-    const merchant_id = '4399469';
-    const access_code = 'AVRB83MH23BQ11BRQB';
     res.json({
-        merchant_id_type: typeof merchant_id,
-        merchant_id_len: String(merchant_id).length,
-        access_code_len: String(access_code).length,
+        merchant_id_loaded: !!process.env.CCAV_MERCHANT_ID,
+        access_code_loaded: !!process.env.CCAV_ACCESS_CODE,
+        working_key_loaded: !!process.env.CCAV_WORKING_KEY,
+        working_key_www_loaded: !!process.env.CCAV_WORKING_KEY_WWW,
+        smtp_loaded: !!process.env.SMTP_PASSWORD,
         node_version: process.version
     });
 });
@@ -489,11 +733,12 @@ app.get('/api/debug-config', (req, res) => {
 // --- 4. HANDSHAKE TEST ENDPOINT ---
 app.get('/api/test-ccav', async (req, res) => {
     try {
-        const working_key = '77CBADC7443F52193CDD382949264C51';
-        const access_code = 'AVRB83MH23BQ11BRQB';
-        const merchant_id = '4399469';
+        const working_key = process.env.CCAV_WORKING_KEY;
+        const access_code = process.env.CCAV_ACCESS_CODE;
+        const merchant_id = process.env.CCAV_MERCHANT_ID;
         
-        const testParams = `merchant_id=${merchant_id}&order_id=TEST_${Date.now()}&currency=INR&amount=1.00&redirect_url=https://gagnersports.com/api/ccavResponseHandler&cancel_url=https://gagnersports.com/failure&language=EN`;
+        const frontendUrl = process.env.FRONTEND_URL || 'https://gagnersports.com';
+        const testParams = `merchant_id=${merchant_id}&order_id=TEST_${Date.now()}&currency=INR&amount=1.00&redirect_url=${frontendUrl}/api/payment/response&cancel_url=${frontendUrl}/payment-failed&language=EN`;
         const encRequest = ccav.encrypt(testParams, working_key);
 
         // This simulates what the browser does, but from the server IP
@@ -535,7 +780,7 @@ const handlePaymentResponse = async (req, res) => {
 
         const host = req.get('host') || 'gagnersports.com';
         const isWWW = host.includes('www.');
-        const working_key = isWWW ? '5A8096D2CCCAAA0EA895860C2A314CA4' : '77CBADC7443F52193CDD382949264C51';
+        const working_key = isWWW ? process.env.CCAV_WORKING_KEY_WWW : process.env.CCAV_WORKING_KEY;
 
         const decryptedResp = ccav.decrypt(encResp, working_key);
         
@@ -554,11 +799,19 @@ const handlePaymentResponse = async (req, res) => {
         let redirectUrl = `https://${host}`;
 
         if (order_status === 'Success') {
+            // 1. Update all participants for this order as Paid
             await Participant.updateMany(
                 { orderId: order_id },
                 { paymentStatus: 'Paid', isPaid: true, transactionId: tracking_id, tracking_id: tracking_id }
             );
             redirectUrl += '/registration-success?orderId=' + order_id;
+
+            // 2. Fire invoice generation + email pipeline (non-blocking)
+            //    This runs asynchronously so the user gets redirected immediately
+            processPostPaymentInvoices(order_id, tracking_id).catch(err => {
+                console.error(`[INVOICE PIPELINE] Background error for ${order_id}:`, err.message);
+            });
+
         } else {
             await Participant.updateMany(
                 { orderId: order_id },
@@ -589,28 +842,24 @@ app.get('/api/ccav-who-am-i', (req, res) => {
     });
 });
 
-// ── PAYMENT DEBUG ENDPOINT — Visit https://gagnertest.onrender.com/api/payment/debug ──
-// This lets you verify encryption is working without triggering a real transaction.
+// ── PAYMENT DEBUG ENDPOINT (redacted credentials) ──
 app.get('/api/payment/debug', (req, res) => {
     try {
-        const working_key = process.env.CCAV_WORKING_KEY || '77CBADC7443F52193CDD382949264C51';
-        const access_code = process.env.CCAV_ACCESS_CODE  || 'AVRB83MH23BQ11BRQB';
-        const merchant_id = process.env.CCAV_MERCHANT_ID  || '4399469';
+        const working_key = process.env.CCAV_WORKING_KEY;
+        const access_code = process.env.CCAV_ACCESS_CODE;
+        const merchant_id = process.env.CCAV_MERCHANT_ID;
+        const frontendUrl = process.env.FRONTEND_URL || 'https://gagnersports.com';
 
-        const testParams = `merchant_id=${merchant_id}&order_id=DEBUG_TEST&currency=INR&amount=1.00&redirect_url=https://gagnersports.com/api/ccavResponseHandler&cancel_url=https://gagnersports.com/api/ccavResponseHandler&language=EN`;
+        const testParams = `merchant_id=${merchant_id}&order_id=DEBUG_TEST&currency=INR&amount=1.00&redirect_url=${frontendUrl}/api/payment/response&cancel_url=${frontendUrl}/payment-failed&language=EN`;
         const testEnc = ccav.encrypt(testParams, working_key);
 
         res.json({
             status: 'ok',
-            env_key_loaded:   !!process.env.CCAV_WORKING_KEY,
+            env_key_loaded:    !!process.env.CCAV_WORKING_KEY,
             env_access_loaded: !!process.env.CCAV_ACCESS_CODE,
-            merchant_id,
-            access_code,
-            working_key_length: working_key.length,
-            working_key_preview: working_key.substring(0, 6) + '...',
-            test_encryption_length: testEnc ? testEnc.length : 0,
-            test_encryption_ok: testEnc && testEnc.length > 10,
-            test_enc_preview: testEnc ? testEnc.substring(0, 32) + '...' : 'EMPTY'
+            env_merchant_loaded: !!process.env.CCAV_MERCHANT_ID,
+            env_smtp_loaded:   !!process.env.SMTP_PASSWORD,
+            test_encryption_ok: testEnc && testEnc.length > 10
         });
     } catch (e) {
         res.status(500).json({ status: 'error', message: e.message });
