@@ -27,6 +27,7 @@ router.post('/payment/initiate', payCtrl.initiatePayment);
 router.post('/payment/response', payCtrl.handlePaymentResponse);
 
 // --- DMS (Content Management) ---
+router.get('/content', (req, res, next) => { req.params.type = 'content'; next(); }, contentCtrl.getContentByType);
 router.get('/dms/:type', contentCtrl.getContentByType);
 router.post('/dms/:type', contentCtrl.createContent);
 router.put('/dms/:type/:id', contentCtrl.updateContent);
@@ -40,6 +41,9 @@ router.delete('/audit', sysCtrl.clearAuditLogs);
 router.get('/leaderboard', sysCtrl.getLeaderboard);
 router.post('/leaderboard', sysCtrl.updateLeaderboard);
 router.delete('/leaderboard/:slug', sysCtrl.deleteLeaderboardEntry);
+
+// --- Coupons (Placeholder) ---
+router.get('/coupons', (req, res) => res.json([]));
 
 // --- Emails ---
 router.post('/bulk-email', mailCtrl.sendBulkEmail);

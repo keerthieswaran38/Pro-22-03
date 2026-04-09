@@ -3,7 +3,10 @@ import Participant from '../models/Participant';
 
 export const getParticipants = async (_req: Request, res: Response) => {
   try {
-    const list = await Participant.find().sort({ registeredAt: -1 });
+    // Only return confirmed (Success/Paid) CCAvenue payments — filter Pending & Failed
+    const list = await Participant.find({
+      paymentStatus: { $in: ['Success', 'Paid'] }
+    }).sort({ registeredAt: -1 });
     res.json(list);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

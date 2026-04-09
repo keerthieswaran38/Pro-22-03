@@ -13,7 +13,7 @@ export interface IParticipant extends Document {
   eventSlug: string;
   eventName: string;
   category: string;
-  paymentStatus: 'Paid' | 'Pending' | 'Failed';
+  paymentStatus: 'Paid' | 'Pending' | 'Failed' | 'Success';
   isPaid: boolean;
   orderId: string;
   transactionId?: string;
@@ -42,7 +42,7 @@ const participantSchema = new Schema<IParticipant>({
   category: String,
   paymentStatus: {
     type: String,
-    enum: ['Paid', 'Pending', 'Failed'],
+    enum: ['Paid', 'Pending', 'Failed', 'Success'],
     default: 'Pending'
   },
   isPaid: { type: Boolean, default: false },
