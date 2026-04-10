@@ -25,7 +25,11 @@ function adminRewrite(): Plugin {
 }
 
 export default defineConfig({
+    base: '/',
     plugins: [react(), adminRewrite()],
+    esbuild: {
+        jsxInject: `import React from 'react'`
+    },
     server: {
         port: 3008,
         strictPort: false,
@@ -38,7 +42,6 @@ export default defineConfig({
             input: {
                 main: resolve(__dirname, 'index.html'),
                 eventDetails: resolve(__dirname, 'event-details.html'),
-                admin: resolve(__dirname, 'admin/index.html'),
             }
         }
     }

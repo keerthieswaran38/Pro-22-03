@@ -257,7 +257,7 @@ export default function DashboardPage() {
           icon={<AlertFilled />}
           style={{ marginBottom: 24, borderRadius: 12, border: 'none', background: 'rgba(239, 68, 68, 0.1)', color: COLOR_ERROR }}
           action={
-            <Button size="small" danger ghost onClick={() => navigate('/admin/events')}>View Event</Button>
+            <Button size="small" danger ghost onClick={() => navigate('/events')}>View Event</Button>
           }
         />
       )}
@@ -271,10 +271,10 @@ export default function DashboardPage() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 28 }}>
         {[
-          { title: 'TOTAL EVENTS', value: stats.total, icon: <CalendarOutlined />, color: COLOR_SUCCESS, growth: stats.eventGrowth, nav: '/admin/events' },
-          { title: 'UPCOMING', value: stats.upcoming, icon: <ThunderboltOutlined />, color: COLOR_PRIMARY, growth: stats.eventGrowth, nav: '/admin/events' },
-          { title: 'PARTICIPANTS', value: stats.participants, icon: <TeamOutlined />, color: COLOR_ACCENT, growth: stats.registrationGrowth, nav: '/admin/participants' },
-          { title: 'ACTIVE COUPONS', value: stats.coupons, icon: <GiftOutlined />, color: '#a855f7', growth: stats.couponGrowth, nav: '/admin/coupons' },
+          { title: 'TOTAL EVENTS', value: stats.total, icon: <CalendarOutlined />, color: COLOR_SUCCESS, growth: stats.eventGrowth, nav: '/events' },
+          { title: 'UPCOMING', value: stats.upcoming, icon: <ThunderboltOutlined />, color: COLOR_PRIMARY, growth: stats.eventGrowth, nav: '/events' },
+          { title: 'PARTICIPANTS', value: stats.participants, icon: <TeamOutlined />, color: COLOR_ACCENT, growth: stats.registrationGrowth, nav: '/participants' },
+          { title: 'ACTIVE COUPONS', value: stats.coupons, icon: <GiftOutlined />, color: '#a855f7', growth: stats.couponGrowth, nav: '/coupons' },
         ].map((s, i) => (
           <Col xs={12} sm={12} lg={6} key={i}>
             <Card 

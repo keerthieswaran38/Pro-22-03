@@ -1,18 +1,19 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 
-const PaymentStatusPage: React.FC = () => {
+const RegistrationSuccess: React.FC<{ isTest?: boolean }> = ({ isTest }) => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const orderId = searchParams.get('orderId');
+    const location = useLocation();
+    const orderId = searchParams.get('orderId') || (isTest ? 'TEST-12345' : null);
     const reason = searchParams.get('reason');
-    const isSuccess = window.location.hash.includes('registration-success');
+    const isSuccess = window.location.hash.includes('success') || location.pathname.includes('success');
     const [countdown, setCountdown] = useState(5);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // 5-second countdown + auto-redirect on success
     useEffect(() => {
-        if (!isSuccess) return;
+        if (!isSuccess || isTest) return;
 
         timerRef.current = setInterval(() => {
             setCountdown(prev => {
@@ -50,6 +51,26 @@ const PaymentStatusPage: React.FC = () => {
             position: 'relative',
             overflow: 'hidden'
         }}>
+            {isTest && (
+                <div style={{
+                    position: 'fixed',
+                    top: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#FF5F00',
+                    color: '#fff',
+                    padding: '8px 20px',
+                    borderRadius: '100px',
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    letterSpacing: '2px',
+                    zIndex: 9999,
+                    boxShadow: '0 10px 30px rgba(255, 95, 0, 0.4)'
+                }}>
+                    TEST MODE : AUTO-REDIRECT DISABLED
+                </div>
+            )}
+
             {/* Background glow effects */}
             <div style={{
                 position: 'absolute',
@@ -126,7 +147,7 @@ const PaymentStatusPage: React.FC = () => {
                     lineHeight: 1.6
                 }}>
                     {isSuccess
-                        ? 'Payment successful! Invoice sent to your email.'
+                        ? 'Payment Successful! Your invoice will be sent to your registered Gmail shortly.'
                         : `The transaction was ${reason === 'Aborted' ? 'cancelled' : 'declined'}. Please try again.`
                     }
                 </p>
@@ -231,4 +252,4 @@ const PaymentStatusPage: React.FC = () => {
     );
 };
 
-export default PaymentStatusPage;
+export default RegistrationSuccess;

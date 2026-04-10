@@ -96,7 +96,7 @@ export default function DMSSponsors() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/admin/dms')} type="text" style={{ fontWeight: 600 }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/dms')} type="text" style={{ fontWeight: 600 }}>
           Back to DMS
         </Button>
         <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.4rem' }}>⭐ Sponsor Management</h2>

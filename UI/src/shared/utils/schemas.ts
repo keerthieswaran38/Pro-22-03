@@ -13,7 +13,7 @@ export const eventSchema = z.object({
   date: z.string().min(1, 'Date is required'),
   time: z.string().min(1, 'Time is required'),
   venue: z.string().min(3, 'Venue is required'),
-  desc: z.string().max(2000, 'Description too long').optional().default(''),
+  desc: z.string().optional().default(''),
   bgImg: z.string()
     .refine(val => val === '' || val.startsWith('/') || val.startsWith('http') || val.startsWith('blob:'),
       'Must be a URL, path starting with /, or uploaded file')
@@ -23,8 +23,8 @@ export const eventSchema = z.object({
   registrationOpen: z.boolean().optional().default(true),
   registrationStart: z.any().optional(),
   registrationEnd: z.any().optional(),
-  rules: z.string().max(2000, 'Rules too long').optional().default(''),
-  prizes_desc: z.string().max(2000, 'Prize details too long').optional().default(''),
+  rules: z.string().optional().default(''),
+  prizes_desc: z.string().optional().default(''),
   contact_email: z.string().email('Invalid email').or(z.literal('')).optional().default(''),
   contact_phone: z.string().max(20, 'Phone too long').optional().default(''),
   isDraft: z.boolean().optional().default(false),

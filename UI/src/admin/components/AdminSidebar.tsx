@@ -7,8 +7,6 @@ import {
 } from '@ant-design/icons';
 import { BRAND_GRADIENT } from '../../shared/theme';
 
-const { Sider } = Layout;
-
 interface AdminSidebarProps {
   collapsed: boolean;
   setCollapsed: (v: boolean) => void;
@@ -18,6 +16,7 @@ interface AdminSidebarProps {
 }
 
 export default function AdminSidebar({ collapsed, setCollapsed, selectedKey, pal, mode }: AdminSidebarProps) {
+  const { Sider } = Layout;
   const navigate = useNavigate();
 
   const menuItems = [
@@ -60,7 +59,7 @@ export default function AdminSidebar({ collapsed, setCollapsed, selectedKey, pal
           transition: 'padding 0.2s',
           minHeight: 76,
         }}
-        onClick={() => navigate('/admin/dashboard')}
+        onClick={() => navigate('/dashboard')}
       >
         <img
           src="/src/assets/images/logo.png"
@@ -91,7 +90,7 @@ export default function AdminSidebar({ collapsed, setCollapsed, selectedKey, pal
         theme={mode === 'dark' ? 'dark' : 'light'}
         mode="inline"
         selectedKeys={[selectedKey]}
-        onClick={({ key }) => navigate(`/admin/${key}`)}
+        onClick={({ key }) => navigate(`/${key}`)}
         items={menuItems}
         style={{
           background: 'transparent',

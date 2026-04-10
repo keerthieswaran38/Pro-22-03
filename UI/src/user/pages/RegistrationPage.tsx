@@ -180,6 +180,12 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
 
     const handleAddParticipant = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!currentForm.category) {
+            alert('Please select a ticket category before submitting.');
+            return;
+        }
+
         if (editingIndex !== null) {
             // Update existing
             const updated = [...participants];
@@ -306,11 +312,12 @@ export default function RegistrationPage({ events }: { events: Record<string, Ga
             <div className="registration-success-wrap" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0a0a0a' }}>
                 <div className="success-content" style={{ background: '#111', padding: '4rem', borderRadius: '20px', border: '1px solid #222', textAlign: 'center', maxWidth: '500px', margin: '0 1.5rem' }}>
                     <div style={{ fontSize: '4rem', color: '#00c853', marginBottom: '1rem' }}>✓</div>
-                    <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#fff' }}>{(participants || []).length} ATTENDEE{(participants || []).length > 1 ? 'S' : ''} CONFIRMED</h2>
+                    <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#fff', textTransform: 'uppercase' }}>Payment Successful!</h2>
                     <p style={{ color: '#aaa', fontSize: '1.1rem', marginBottom: '0.5rem' }}>
-                        {(participants || []).map(p => p.name).join(', ')} registered for <strong style={{color:'#fff'}}>{event?.title || 'Event'}</strong>.
+                        Your registration for <strong style={{color:'#fff'}}>{event?.title || 'Event'}</strong> is confirmed.
                     </p>
-                    <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '2rem' }}>Redirecting to home...</p>
+                    <p style={{ color: '#FF5F00', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Your invoice will be sent to your registered Gmail shortly.</p>
+                    <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '2rem' }}>Redirecting to home in 5 seconds...</p>
                     <Link to="/" style={{ background: '#ff5f00', color: '#fff', padding: '1rem 2rem', textDecoration: 'none', fontWeight: 700, borderRadius: '12px', display: 'inline-block' }}>BACK TO HOME</Link>
                 </div>
             </div>

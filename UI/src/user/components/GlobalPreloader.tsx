@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 // @ts-ignore
 import logo from '../../assets/images/logo.png';
 
-declare const gsap: any;
+import { gsap } from 'gsap';
 
 export default function GlobalPreloader({ content = [] }: { content?: any[] }) {
     const logoImg = content.find((c: any) => c.type === 'logo')?.imageUrl || logo;

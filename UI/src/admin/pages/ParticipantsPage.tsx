@@ -215,8 +215,8 @@ export default function ParticipantsPage() {
               label: `${e} (${(participants || []).filter(p => p.eventName === e).length})` 
             }))} 
           />
-          <Select placeholder="Payment" value={paymentFilter || undefined} onChange={(v) => setPaymentFilter(v || '')} allowClear style={{ width: 100 }} size="small"
-            options={[{ value: 'Paid', label: 'Paid' }, { value: 'Pending', label: 'Pending' }, { value: 'Failed', label: 'Failed' }]} />
+          <Select placeholder="Payment" value={paymentFilter || undefined} onChange={(v) => setPaymentFilter(v || '')} allowClear style={{ width: 120 }} size="small"
+            options={[{ value: 'Paid', label: 'Paid' }, { value: 'Success', label: 'Success' }]} />
           {(searchText || cityFilter || genderFilter || ageFilter || paymentFilter || eventFilter) && (
             <Button type="link" size="small" onClick={clearFilters} style={{ color: COLOR_PRIMARY, fontSize: '0.75rem' }}>Clear All</Button>
           )}
@@ -232,7 +232,28 @@ export default function ParticipantsPage() {
             },
             style: { cursor: 'pointer' }
           })}
-          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+            columnTitle: (
+              <input
+                type="checkbox"
+                title="Select / Deselect All"
+                checked={filtered.length > 0 && selectedRowKeys.length === filtered.length}
+                ref={el => {
+                  if (el) el.indeterminate = selectedRowKeys.length > 0 && selectedRowKeys.length < filtered.length;
+                }}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedRowKeys(filtered.map(p => p.id));
+                  } else {
+                    setSelectedRowKeys([]);
+                  }
+                }}
+                style={{ width: 16, height: 16, cursor: 'pointer' }}
+              />
+            ),
+          }}
           pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${total} total` }} />
       </Card>
 

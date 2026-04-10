@@ -6,8 +6,6 @@ import {
 } from '@ant-design/icons';
 import { BRAND_GRADIENT, COLOR_PRIMARY } from '../../shared/theme';
 
-const { Header } = Layout;
-
 interface AdminHeaderProps {
   collapsed: boolean;
   setCollapsed: (v: boolean) => void;
@@ -27,6 +25,7 @@ export default function AdminHeader({
   userEmail,
   handleLogout
 }: AdminHeaderProps) {
+  const { Header } = Layout;
   const userMenuItems = [
     { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true, onClick: handleLogout },
   ];

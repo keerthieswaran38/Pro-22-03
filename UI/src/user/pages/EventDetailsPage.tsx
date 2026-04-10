@@ -81,6 +81,30 @@ export default function EventDetailsPage({ events, coupons }: { events: any, cou
                   <div className="ed-meta-card hover-target" style={{gridColumn: 'span 2'}}><div className="ed-meta-label">VENUE</div><div className="ed-meta-value">{event.venue || 'Chennai, India'}</div></div>
               </div>
 
+              {/* ── PRIZES & ELIGIBILITY ── hidden when empty */}
+              {(event.prizes_desc) && (
+                <div className="ed-section" style={{
+                  background: 'linear-gradient(145deg, rgba(255,107,0,0.06) 0%, rgba(5,5,5,0.9) 100%)',
+                  padding: '2.5rem 3rem',
+                  borderRadius: '24px',
+                  border: '1px solid rgba(255,107,0,0.15)',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                }}>
+                  <h2 className="ed-section-title" style={{ marginBottom: '1.5rem' }}>
+                    🏆 PRIZES &amp; <span className="primary" style={{ marginLeft: '8px' }}>ELIGIBILITY</span>
+                  </h2>
+                  <div style={{
+                    color: 'rgba(255,255,255,0.85)',
+                    fontSize: '1.05rem',
+                    lineHeight: 1.9,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word'
+                  }}>
+                    {event.prizes_desc}
+                  </div>
+                </div>
+              )}
+
               <div className="ed-section" style={{
                     background: 'linear-gradient(145deg, rgba(20,20,20,0.6) 0%, rgba(5,5,5,0.9) 100%)',
                     padding: '3rem',

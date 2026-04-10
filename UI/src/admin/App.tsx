@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Skeleton, ConfigProvider } from 'antd';
 import { isLoggedIn, logout, getAdminEmail } from '../shared/utils/auth';
 import { getGagnerTheme, getPalette, type ThemeMode } from '../shared/theme';
@@ -21,7 +21,7 @@ import DMSLogo from './pages/DMSLogo';
 import DMSContact from './pages/DMSContact';
 import DMSSponsors from './pages/DMSSponsors';
 
-const { Content } = Layout;
+// const { Content } = Layout; // Removed from top-level to avoid ReferenceError
 
 /* ─── THEME CONTEXT ─── */
 interface ThemeCtx { mode: ThemeMode; toggle: () => void }
@@ -30,7 +30,7 @@ export const useThemeMode = () => useContext(ThemeContext);
 
 /* ─── AUTH GUARD ─── */
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  if (!isLoggedIn()) return <Navigate to="/admin/login" replace />;
+  if (!isLoggedIn()) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -65,14 +65,14 @@ function AdminLayout() {
   }, [location.pathname]);
 
   const selectedKey = (() => {
-    const path = location.pathname.replace('/admin/', '').replace('/admin', '');
+    const path = location.pathname.replace(/^\//, '');
     if (path.startsWith('dms')) return 'dms';
     return path || 'dashboard';
   })();
 
   const handleLogout = () => {
     logout();
-    navigate('/admin/login');
+    navigate('/login');
   };
 
   return (
@@ -101,7 +101,7 @@ function AdminLayout() {
           handleLogout={handleLogout}
         />
 
-        <Content style={{
+        <Layout.Content style={{
           padding: '24px 28px',
           minHeight: 'calc(100vh - 56px)',
         }}>
@@ -125,7 +125,7 @@ function AdminLayout() {
               <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Routes>
           )}
-        </Content>
+        </Layout.Content>
       </Layout>
     </Layout>
   );
@@ -145,11 +145,11 @@ export default function AdminApp() {
   return (
     <ThemeContext.Provider value={{ mode, toggle }}>
       <ConfigProvider theme={getGagnerTheme(mode)}>
-        <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <BrowserRouter basename="/admin" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
-            <Route path="/admin/login" element={<LoginPage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route
-              path="/admin/*"
+              path="/*"
               element={
                 <RequireAuth>
                   <AdminLayout />
@@ -157,8 +157,9 @@ export default function AdminApp() {
               }
             />
           </Routes>
-        </HashRouter>
+        </BrowserRouter>
       </ConfigProvider>
     </ThemeContext.Provider>
   );
 }
+

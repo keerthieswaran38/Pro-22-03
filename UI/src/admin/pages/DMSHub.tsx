@@ -77,7 +77,7 @@ export default function DMSHub() {
               iconPosition="end"
               size="large"
               style={{ fontWeight: 600, minWidth: 120 }}
-              onClick={() => navigate(`/admin/${m.key}`)}
+              onClick={() => navigate(`/${m.key}`)}
             >
               Manage
             </Button>

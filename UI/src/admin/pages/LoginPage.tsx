@@ -24,7 +24,7 @@ export default function LoginPage() {
     setTimeout(() => {
       if (login(result.data.email, result.data.password)) {
         logAction('LOGIN', 'Admin Panel', 'Admin signed in');
-        navigate('/admin/dashboard');
+        navigate('/dashboard');
       } else {
         message.error('Invalid email or password.');
       }

@@ -2,8 +2,8 @@ import React, { useState, useEffect, useLayoutEffect, lazy, Suspense } from 'rea
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEvents, useCoupons, useLeaderboard, useCMSContent } from '../shared/hooks/useSync';
 
-declare const gsap: any;
-declare const ScrollTrigger: any;
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 // --- COMPONENTS ---
 import UserNavbar from './components/UserNavbar';
@@ -19,7 +19,9 @@ const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const BlogDetailsPage = lazy(() => import('./pages/BlogDetailsPage'));
 const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
 const RefundCancellationPage = lazy(() => import('./pages/RefundCancellationPage'));
-const PaymentStatusPage = lazy(() => import('./pages/PaymentStatusPage'));
+const RegistrationSuccess = lazy(() => import('./pages/RegistrationSuccess'));
+
+gsap.registerPlugin(ScrollTrigger);
 
 /* ─── USER LAYOUT ─── */
 function UserLayout({ children, loading, events, leaderboard, contentData }: { children: React.ReactNode, loading: boolean, events: any[], leaderboard: any, contentData: any[] }) {
@@ -31,9 +33,6 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
   // --- REPLICATION: CURSOR & GSAP GLOBAL ---
   useLayoutEffect(() => {
-    if (typeof gsap === 'undefined') return;
-    gsap.registerPlugin(ScrollTrigger);
-
     const cursor = document.querySelector('.cursor') as HTMLElement;
     const follower = document.querySelector('.cursor-follower') as HTMLElement;
 
@@ -83,7 +82,7 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
   // --- SPLASH SCREEN TIMER ---
   useEffect(() => {
-    const timer = setTimeout(() => setMinSplashDone(true), 2500); // Reduce splash wait to 2.5s
+    const timer = setTimeout(() => setMinSplashDone(true), 2500); 
     
     // Safety Force-Ready Timeout: 4s max wait for data
     const safetyTimer = setTimeout(() => {
@@ -99,13 +98,11 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
   // --- REPLICATION: PRELOADER EXIT & HERO ENTRANCE ---
   useEffect(() => {
-    // For non-root pages (e.g. /register), skip splash and dismiss preloader immediately
     if ((!loading || forceReady) && !isIntroDone && pathname !== '/') {
         setIsIntroDone(true);
         setHasInitiallyLoaded(true);
         return;
     }
-    // Only proceed when data is loaded (or timed out) AND the splash period has elapsed
     if ((!loading || forceReady) && minSplashDone && !isIntroDone) {
         if (pathname !== '/') {
             setIsIntroDone(true);
@@ -114,11 +111,8 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
         }
 
         const tl = gsap.timeline();
-
-        // 1. Immediately allow the app to be interactive (behind the curtain)
         setHasInitiallyLoaded(true);
 
-        // 2. Slide the curtain
         tl.to('.preloader', {
             yPercent: -100,
             duration: 1.2,
@@ -128,7 +122,6 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
             }
         });
 
-        // 3. Fallback: If the animation doesn't move/is stuck, force-complete intro
         setTimeout(() => setIsIntroDone(true), 1500);
     }
 }, [loading, minSplashDone, isIntroDone, pathname, forceReady]);
@@ -162,7 +155,6 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
     }
   }, [pathname, hash, isIntroDone]);
 
-  // Separate effect for ScrollTrigger refresh on mount/path change
   useEffect(() => {
     const timer = setTimeout(() => {
         ScrollTrigger.refresh();
@@ -194,14 +186,10 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
 export default function UserApp() {
   const [dataTimeout, setDataTimeout] = useState(false);
-  const [isWakingUp, setIsWakingUp] = useState(false);
 
   useEffect(() => {
-    // Render free tier cold-starts take up to ~50s.
-    // Show a "waking up" hint after 8s, and only show the fallback error banner after 65s.
-    const wakeTimer  = setTimeout(() => setIsWakingUp(true),  8000);
-    const hardTimer  = setTimeout(() => { setDataTimeout(true); setIsWakingUp(false); }, 65000);
-    return () => { clearTimeout(wakeTimer); clearTimeout(hardTimer); };
+    const hardTimer  = setTimeout(() => { setDataTimeout(true); }, 20000);
+    return () => clearTimeout(hardTimer);
   }, []);
 
   const { data: events = {}, isLoading: evLoading, error: evError } = useEvents();
@@ -211,12 +199,10 @@ export default function UserApp() {
   
   const contentData = rawContent.filter((c: any) => c.active).sort((a: any, b: any) => a.order - b.order);
 
-  // Show preloader while initial data is fetching, unless it times out
   const isStillLoading = evLoading || cpLoading || lbLoading || contentLoading;
   const isInitialLoading = !dataTimeout && isStillLoading;
-  const hasError = dataTimeout && isStillLoading; // Show error if timeout happened but still loading
+  const hasError = dataTimeout && isStillLoading; 
 
-  // Filter events: only show events that are Open (registrationOpen) and not drafts
   const activeEvents = Object.entries(events)
     .filter(([, ev]) => ev.registrationOpen !== false && !ev.isDraft)
     .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {} as Record<string, any>);
@@ -227,14 +213,6 @@ export default function UserApp() {
 
   return (
     <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      {/* Waking up Render server (amber, non-alarming) */}
-      {isWakingUp && !dataTimeout && isStillLoading && (
-          <div style={{ position:'fixed', top:0, left:0, right:0, background:'rgba(180,120,0,0.95)', color:'#fff', zIndex:99999, padding:'8px 16px', textAlign:'center', fontSize:'13px', fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:'10px' }}>
-            <span style={{ display:'inline-block', width:'14px', height:'14px', border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}></span>
-            ⏳ Waking up the server — this takes ~30 seconds on first load. Please wait...
-          </div>
-      )}
-      {/* Full fallback error — only after 65s with no response */}
       {hasError && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: 'red', color: 'white', zIndex: 99999, padding: '10px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold' }}>
               ⚠️ Unable to load live database. Showing local fallback data.
@@ -250,8 +228,10 @@ export default function UserApp() {
             <Route path="/blog/:id" element={<BlogDetailsPage />} />
             <Route path="/terms-conditions" element={<TermsConditionsPage />} />
             <Route path="/refund-cancellation" element={<RefundCancellationPage />} />
-            <Route path="/registration-success" element={<PaymentStatusPage />} />
-            <Route path="/payment-failed" element={<PaymentStatusPage />} />
+            <Route path="/registration-success" element={<RegistrationSuccess />} />
+            <Route path="/payment-failed" element={<RegistrationSuccess />} />
+            <Route path="/test-success" element={<RegistrationSuccess isTest={true} />} />
+            <Route path="/test-failed" element={<RegistrationSuccess isTest={true} />} />
             <Route path="*" element={<LandingPage events={activeEventsList} leaderboard={leaderboard} content={contentData} />} />
           </Routes>
         </Suspense>
