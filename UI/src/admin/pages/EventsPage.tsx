@@ -33,7 +33,7 @@ const TAG_COLORS: Record<string, string> = {
   KIDS: 'tag-kids', CORPORATE: 'tag-corporate',
 };
 
-const UnbreakableMap = lazy(() => import('../components/UnbreakableMap'));
+const UnbreakableMap = React.lazy(() => import('../components/UnbreakableMap'));
 
 /* ─── COUNTDOWN ─── */
 function useCountdown(targetDate: string) {

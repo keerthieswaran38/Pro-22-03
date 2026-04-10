@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEvents, useCoupons, useLeaderboard, useCMSContent } from '../shared/hooks/useSync';
 
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+// --- GSAP GLOBAL DECLARATION ---
+// This prevents ReferenceErrors when GSAP is loaded via CDN (as in index.html)
+declare const gsap: any;
+declare const ScrollTrigger: any;
 
 // --- COMPONENTS ---
 import UserNavbar from './components/UserNavbar';
@@ -12,16 +14,14 @@ import GlobalPreloader from './components/GlobalPreloader';
 import LeaderboardOverlay from './components/LeaderboardOverlay';
 
 // --- PAGES LAZY LOADING ---
-const LandingPage = lazy(() => import('./pages/LandingPage'));
-const EventDetailsPage = lazy(() => import('./pages/EventDetailsPage'));
-const RegistrationPage = lazy(() => import('./pages/RegistrationPage'));
-const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
-const BlogDetailsPage = lazy(() => import('./pages/BlogDetailsPage'));
-const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
-const RefundCancellationPage = lazy(() => import('./pages/RefundCancellationPage'));
-const RegistrationSuccess = lazy(() => import('./pages/RegistrationSuccess'));
-
-gsap.registerPlugin(ScrollTrigger);
+const LandingPage = React.lazy(() => import('./pages/LandingPage'));
+const EventDetailsPage = React.lazy(() => import('./pages/EventDetailsPage'));
+const RegistrationPage = React.lazy(() => import('./pages/RegistrationPage'));
+const PrivacyPolicyPage = React.lazy(() => import('./pages/PrivacyPolicyPage'));
+const BlogDetailsPage = React.lazy(() => import('./pages/BlogDetailsPage'));
+const TermsConditionsPage = React.lazy(() => import('./pages/TermsConditionsPage'));
+const RefundCancellationPage = React.lazy(() => import('./pages/RefundCancellationPage'));
+const RegistrationSuccess = React.lazy(() => import('./pages/RegistrationSuccess'));
 
 /* ─── USER LAYOUT ─── */
 function UserLayout({ children, loading, events, leaderboard, contentData }: { children: React.ReactNode, loading: boolean, events: any[], leaderboard: any, contentData: any[] }) {
@@ -33,6 +33,9 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
   // --- REPLICATION: CURSOR & GSAP GLOBAL ---
   useLayoutEffect(() => {
+    if (typeof gsap === 'undefined') return;
+    gsap.registerPlugin(ScrollTrigger);
+
     const cursor = document.querySelector('.cursor') as HTMLElement;
     const follower = document.querySelector('.cursor-follower') as HTMLElement;
 
@@ -58,7 +61,7 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
     const handleInteract = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         const isHoverable = target.closest('a, button, .hover-target');
-        
+
         if (e.type === 'mouseover' && isHoverable) {
             cursor?.classList.add('hovering');
             follower?.classList.add('hovering');
@@ -82,8 +85,8 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
   // --- SPLASH SCREEN TIMER ---
   useEffect(() => {
-    const timer = setTimeout(() => setMinSplashDone(true), 2500); 
-    
+    const timer = setTimeout(() => setMinSplashDone(true), 2500); // Reduce splash wait to 2.5s
+
     // Safety Force-Ready Timeout: 4s max wait for data
     const safetyTimer = setTimeout(() => {
         console.warn("Preloader safety timeout triggered - forcing app to load");
@@ -103,6 +106,7 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
         setHasInitiallyLoaded(true);
         return;
     }
+
     if ((!loading || forceReady) && minSplashDone && !isIntroDone) {
         if (pathname !== '/') {
             setIsIntroDone(true);
@@ -157,7 +161,7 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
   useEffect(() => {
     const timer = setTimeout(() => {
-        ScrollTrigger.refresh();
+        if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
     }, 1000);
     return () => clearTimeout(timer);
   }, [pathname]);
@@ -173,9 +177,9 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
         events={events}
         leaderboardData={leaderboard || {}}
       />
-      
+
       <UserNavbar onOpenLeaderboard={() => setIsLeaderboardOpen(true)} content={contentData} />
-      
+
       <div id="smooth-content">
         {children}
       </div>
@@ -186,17 +190,20 @@ function UserLayout({ children, loading, events, leaderboard, contentData }: { c
 
 export default function UserApp() {
   const [dataTimeout, setDataTimeout] = useState(false);
+  const [isWakingUp, setIsWakingUp] = useState(false);
 
   useEffect(() => {
-    const hardTimer  = setTimeout(() => { setDataTimeout(true); }, 20000);
-    return () => clearTimeout(hardTimer);
+    // Show a "waking up" hint after 8s, and only show the fallback error banner after 65s.
+    const wakeTimer  = setTimeout(() => setIsWakingUp(true),  8000);
+    const hardTimer  = setTimeout(() => { setDataTimeout(true); setIsWakingUp(false); }, 65000);
+    return () => { clearTimeout(wakeTimer); clearTimeout(hardTimer); };
   }, []);
 
   const { data: events = {}, isLoading: evLoading, error: evError } = useEvents();
   const { data: coupons = [], isLoading: cpLoading, error: cpError } = useCoupons();
   const { data: leaderboard = {}, isLoading: lbLoading, error: lbError } = useLeaderboard();
   const { data: rawContent = [], isLoading: contentLoading, error: contentError } = useCMSContent();
-  
+
   const contentData = rawContent.filter((c: any) => c.active).sort((a: any, b: any) => a.order - b.order);
 
   const isStillLoading = evLoading || cpLoading || lbLoading || contentLoading;
@@ -212,7 +219,13 @@ export default function UserApp() {
   }));
 
   return (
-    <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      {isWakingUp && !dataTimeout && isStillLoading && (
+          <div style={{ position:'fixed', top:0, left:0, right:0, background:'rgba(180,120,0,0.95)', color:'#fff', zIndex:99999, padding:'8px 16px', textAlign:'center', fontSize:'13px', fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:'10px' }}>
+            <span style={{ display:'inline-block', width:'14px', height:'14px', border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}></span>
+            ⏳ Waking up the server — this takes ~30 seconds on first load. Please wait...
+          </div>
+      )}
       {hasError && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: 'red', color: 'white', zIndex: 99999, padding: '10px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold' }}>
               ⚠️ Unable to load live database. Showing local fallback data.
@@ -236,6 +249,6 @@ export default function UserApp() {
           </Routes>
         </Suspense>
       </UserLayout>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
